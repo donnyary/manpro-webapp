@@ -214,7 +214,7 @@
                     <tbody>
                         {% for pk in pekerjaan %}
                         <tr>
-                            <td><input type="text" class="form-control form-control-sm" name="jenis_pekerjaan[]" value="{{ pk.jenis_pekerjaan }}" required></td>
+                            <td>{{ getWbsSelectHtml('jenis_pekerjaan[]', pk.jenis_pekerjaan) | safe }}</td>
                             <td><input type="text" class="form-control form-control-sm" name="lokasi_pekerjaan[]" value="{{ pk.lokasi }}"></td>
                             <td><input type="text" class="form-control form-control-sm" name="vol_harian[]" value="{{ pk.vol_harian }}"></td>
                             <td><input type="text" class="form-control form-control-sm" name="proses_kumulatif[]" value="{{ pk.proses_kumulatif }}"></td>
