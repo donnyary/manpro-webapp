@@ -556,12 +556,30 @@ def login():
                 flash('Akun ditolak.', 'danger'); return render_template('login.html')
             
             user_role = user.get('role', 'user')
+            
+            # ── Load Edit/Delete Permission ──
+            can_edit, can_delete = True, True
+            if user_role in ('user', 'manager'):
+                try:
+                    conn_p = get_db_connection()
+                    cur_p = conn_p.cursor(dictionary=True)
+                    cur_p.execute('SELECT can_edit, can_delete FROM user_permissions WHERE user_id = %s', (user['id'],))
+                    perm = cur_p.fetchone()
+                    cur_p.close(); conn_p.close()
+                    if perm:
+                        can_edit = bool(perm['can_edit'])
+                        can_delete = bool(perm['can_delete'])
+                except:
+                    pass
+            
             session.update({
                 'logged_in': True, 
                 'user_id': user['id'],
                 'username': user['username'],
                 'nama_lengkap': user.get('nama_lengkap', user['username']),
                 'role': user_role,
+                'can_edit': can_edit,
+                'can_delete': can_delete,
                 'menu_permissions': load_permissions(user_role)
             })
             
