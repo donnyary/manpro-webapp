@@ -232,6 +232,31 @@
 </div>
 
 <script>
+const wbsOptions = [{% for wbs in wbs_list %}'{{ wbs }}'{% if not loop.last %},{% endif %}{% endfor %}];
+
+function getWbsSelectHtml(name) {
+    let html = '<select class="form-select form-select-sm" name="' + name + '" required>';
+    html += '<option value="" selected disabled>-- Pilih Pekerjaan --</option>';
+    for (let w of wbsOptions) {
+        html += '<option value="' + w + '">' + w + '</option>';
+    }
+    html += '<option value="__LAINNYA__">Lainnya (ketik sendiri)</option>';
+    html += '</select>';
+    html += '<input type="text" class="form-control form-control-sm mt-1 d-none" name="' + name.replace('[]', '_custom[]') + '" placeholder="Ketik jenis pekerjaan...">';
+    return html;
+}
+
+function toggleCustomInput(sel) {
+    let customInput = sel.nextElementSibling;
+    if (sel.value === '__LAINNYA__') {
+        customInput.classList.remove('d-none');
+        customInput.focus();
+    } else {
+        customInput.classList.add('d-none');
+        customInput.value = '';
+    }
+}
+
 function hapusBaris(btn) {
     let row = btn.closest('tr');
     if (row.parentNode.rows.length > 1) {
