@@ -2830,6 +2830,10 @@ def add_wbs(proyek_id):
 @role_required('admin', 'manager')
 def edit_wbs(id, proyek_id):
     if not validate_csrf(): return redirect(url_for('wbs_view', proyek_id=proyek_id))
+    # ── Permission Check ──
+    if not can_user_edit(session['user_id']):
+        flash('Anda tidak memiliki akses untuk mengedit data!', 'danger')
+        return redirect(url_for('wbs_view', proyek_id=proyek_id))
     conn = get_db_connection()
     cursor = conn.cursor()
     sql = "UPDATE master_wbs SET kode_wbs = %s, nama_pekerjaan = %s, bobot_persen = %s WHERE id = %s"
