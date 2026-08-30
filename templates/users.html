@@ -149,6 +149,21 @@
                             </form>
                             {% endif %}
 
+                            <!-- Manage Project Access -->
+                            {% if u.role == 'user' %}
+                            <a href="/users/projects/{{ u.id }}" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 me-1" title="Atur Akses Proyek">
+                                <i class="fa-solid fa-folder-open"></i> Proyek
+                            </a>
+                            
+                            <!-- Toggle Read-Only -->
+                            <form action="/users/readonly/{{ u.id }}" method="POST" class="d-inline">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-warning rounded-pill px-2 py-1 me-1" title="Toggle Read-Only">
+                                    <i class="fa-solid fa-eye"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+
                             <!-- Delete -->
                             {% if u.username != session.username %}
                             <form action="/users/delete/{{ u.id }}" method="POST" class="d-inline">
