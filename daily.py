@@ -1307,37 +1307,22 @@ def sync_bidirectional():
     
     try:
         conn_local = get_db_connection()
-        cur_local = conn_local.cursor()
-        cur_cloud = conn_cloud.cursor()
-        
         total = 0
         for table in SYNC_TABLES:
             try:
-                # Ambil data dari cloud
-                cur_cloud.execute(f'SELECT * FROM `{table}`')
-                cloud_rows = cur_cloud.fetchall()
-                
-                if cloud_rows:
-                    # Ambil nama kolom
-                    cur_cloud.execute(f'SHOW COLUMNS FROM `{table}`')
-                    columns = [c[0] for c in cur_cloud.fetchall()]
-                    col_str = ', '.join([f'`{c}`' for c in columns])
-                    placeholders = ', '.join(['%s'] * len(columns))
-                    insert_sql = f'INSERT IGNORE INTO `{table}` ({col_str}) VALUES ({placeholders})'
-                    
-                    cur_local.executemany(insert_sql, cloud_rows)
-                    total += len(cloud_rows)
+                # Push lokal -> cloud
+                n1 = _sync_table_push(conn_local, conn_cloud, table)
+                total += n1
+                # Pull cloud -> lokal
+                n2 = _sync_table_pull(conn_local, conn_cloud, table)
+                total += n2
             except Exception as e:
                 print(f'[SYNC BI] {table}: {e}')
         
-        conn_local.commit()
-        
-        cur_local.close()
         conn_local.close()
-        cur_cloud.close()
         conn_cloud.close()
         
-        flash(f'Sync bidirectional berhasil! {total} data digabungkan.', 'success')
+        flash(f'Sync bidirectional berhasil! {total} data digabungkan (safe merge).', 'success')
     except Exception as e:
         flash(f'Gagal sync: {str(e)}', 'danger')
     
