@@ -1237,48 +1237,20 @@ def sync_push():
     
     try:
         conn_local = get_db_connection()
-        cur_local = conn_local.cursor()
-        cur_cloud = conn_cloud.cursor()
-        
-        cur_cloud.execute('SET FOREIGN_KEY_CHECKS=0')
-        cur_cloud.execute('SET UNIQUE_CHECKS=0')
-        
         total = 0
         for table in SYNC_TABLES:
             try:
-                # Ambil struktur tabel
-                cur_local.execute(f'SHOW CREATE TABLE `{table}`')
-                create_sql = cur_local.fetchone()[1]
-                
-                # Buat/update tabel di cloud
-                cur_cloud.execute(f'DROP TABLE IF EXISTS `{table}`')
-                cur_cloud.execute(create_sql)
-                
-                # Ambil data dari lokal
-                cur_local.execute(f'SELECT * FROM `{table}`')
-                rows = cur_local.fetchall()
-                
-                if rows:
-                    cur_local.execute(f'SHOW COLUMNS FROM `{table}`')
-                    columns = [c[0] for c in cur_local.fetchall()]
-                    col_str = ', '.join([f'`{c}`' for c in columns])
-                    placeholders = ', '.join(['%s'] * len(columns))
-                    insert_sql = f'INSERT INTO `{table}` ({col_str}) VALUES ({placeholders})'
-                    cur_cloud.executemany(insert_sql, rows)
-                    total += len(rows)
+                n = _sync_table_push(conn_local, conn_cloud, table)
+                total += n
+                if n > 0:
+                    print(f'[SYNC PUSH] {table}: {n} rows')
             except Exception as e:
                 print(f'[SYNC PUSH] {table}: {e}')
         
-        cur_cloud.execute('SET FOREIGN_KEY_CHECKS=1')
-        cur_cloud.execute('SET UNIQUE_CHECKS=1')
-        conn_cloud.commit()
-        
-        cur_local.close()
         conn_local.close()
-        cur_cloud.close()
         conn_cloud.close()
         
-        flash(f'Push berhasil! {total} data dikirim ke TiDB Cloud.', 'success')
+        flash(f'Push berhasil! {total} data dikirim ke TiDB Cloud (safe merge).', 'success')
     except Exception as e:
         flash(f'Gagal push data: {str(e)}', 'danger')
     
