@@ -149,8 +149,8 @@
                             </form>
                             {% endif %}
 
-                            <!-- Manage Project Access -->
-                            {% if u.role == 'user' %}
+                            <!-- Manage Project Access (User & Manager) -->
+                            {% if u.role in ('user', 'manager') %}
                             <a href="/users/projects/{{ u.id }}" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 me-1" title="Atur Akses Proyek">
                                 <i class="fa-solid fa-folder-open"></i> Proyek
                             </a>
