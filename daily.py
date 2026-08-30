@@ -706,6 +706,160 @@ def edit_user_role(user_id):
     return redirect(url_for('users_management'))
 
 # ==========================================
+# 0.5.1 USER PROJECT ACCESS & PERMISSIONS
+# ==========================================
+
+def can_user_access_project(user_id, proyek_id):
+    """Cek apakah user boleh mengakses proyek tertentu. Admin/manager selalu bisa."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Cek role user
+        cursor.execute('SELECT role FROM users WHERE id = %s', (user_id,))
+        user = cursor.fetchone()
+        if not user or user['role'] in ('admin', 'manager'):
+            cursor.close(); conn.close()
+            return True
+        
+        # Cek apakah user punya akses ke proyek ini
+        cursor.execute('SELECT COUNT(*) as cnt FROM user_projects WHERE user_id = %s AND proyek_id = %s', (user_id, proyek_id))
+        has_access = cursor.fetchone()['cnt'] > 0
+        cursor.close(); conn.close()
+        return has_access
+    except:
+        return True  # Jika tabel belum ada, izinkan semua
+
+def can_user_edit(user_id):
+    """Cek apakah user boleh edit/delete data. Admin/manager selalu bisa."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute('SELECT role FROM users WHERE id = %s', (user_id,))
+        user = cursor.fetchone()
+        if not user or user['role'] in ('admin', 'manager'):
+            cursor.close(); conn.close()
+            return True
+        
+        cursor.execute('SELECT can_edit FROM user_permissions WHERE user_id = %s', (user_id,))
+        perm = cursor.fetchone()
+        cursor.close(); conn.close()
+        return perm['can_edit'] if perm else True
+    except:
+        return True
+
+def can_user_delete(user_id):
+    """Cek apakah user boleh hapus data. Admin/manager selalu bisa."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        cursor.execute('SELECT role FROM users WHERE id = %s', (user_id,))
+        user = cursor.fetchone()
+        if not user or user['role'] in ('admin', 'manager'):
+            cursor.close(); conn.close()
+            return True
+        
+        cursor.execute('SELECT can_delete FROM user_permissions WHERE user_id = %s', (user_id,))
+        perm = cursor.fetchone()
+        cursor.close(); conn.close()
+        return perm['can_delete'] if perm else True
+    except:
+        return True
+
+# Register helpers ke Jinja
+app.jinja_env.globals['can_user_access_project'] = can_user_access_project
+app.jinja_env.globals['can_user_edit'] = can_user_edit
+app.jinja_env.globals['can_user_delete'] = can_user_delete
+
+@app.route('/users/projects/<int:user_id>', methods=['GET', 'POST'])
+@role_required('admin')
+def manage_user_projects(user_id):
+    """Atur akses proyek untuk user tertentu."""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Ambil info user
+    cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        flash('User tidak ditemukan!', 'danger')
+        return redirect(url_for('users_management'))
+    
+    if request.method == 'POST':
+        if not validate_csrf():
+            return redirect(url_for('manage_user_projects', user_id=user_id))
+        
+        # Hapus semua akses lama
+        cursor.execute('DELETE FROM user_projects WHERE user_id = %s', (user_id,))
+        
+        # Simpan akses baru
+        proyek_ids = request.form.getlist('proyek_access[]')
+        for pid in proyek_ids:
+            cursor.execute('INSERT INTO user_projects (user_id, proyek_id) VALUES (%s, %s)', (user_id, int(pid)))
+        
+        # Simpan permission edit/delete
+        can_edit = 1 if request.form.get('can_edit') else 0
+        can_delete = 1 if request.form.get('can_delete') else 0
+        can_add = 1 if request.form.get('can_add_project') else 0
+        
+        cursor.execute(
+            'INSERT INTO user_permissions (user_id, can_edit, can_delete, can_add_project) VALUES (%s, %s, %s, %s) '
+            'ON DUPLICATE KEY UPDATE can_edit=%s, can_delete=%s, can_add_project=%s',
+            (user_id, can_edit, can_delete, can_add, can_edit, can_delete, can_add)
+        )
+        
+        conn.commit(); cursor.close(); conn.close()
+        flash(f'Hak akses proyek untuk {user["username"]} berhasil disimpan!', 'success')
+        return redirect(url_for('users_management'))
+    
+    # Ambil semua proyek
+    cursor.execute('SELECT * FROM master_proyek ORDER BY id DESC')
+    all_proyeks = cursor.fetchall()
+    
+    # Ambil proyek yang sudah diakses user
+    cursor.execute('SELECT proyek_id FROM user_projects WHERE user_id = %s', (user_id,))
+    user_proyek_ids = [r['proyek_id'] for r in cursor.fetchall()]
+    
+    # Ambil permission user
+    cursor.execute('SELECT * FROM user_permissions WHERE user_id = %s', (user_id,))
+    user_perm = cursor.fetchone()
+    
+    cursor.close(); conn.close()
+    
+    return render_template('manage_user_projects.html',
+                          user=user, all_proyeks=all_proyeks,
+                          user_proyek_ids=user_proyek_ids, user_perm=user_perm)
+
+@app.route('/users/readonly/<int:user_id>', methods=['POST'])
+@role_required('admin')
+def toggle_readonly(user_id):
+    """Toggle mode read-only untuk user."""
+    if not validate_csrf(): return redirect(url_for('users_management'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Ambil permission saat ini
+    cursor.execute('SELECT * FROM user_permissions WHERE user_id = %s', (user_id,))
+    perm = cursor.fetchone()
+    
+    new_edit = 0 if (perm and perm['can_edit']) else 1
+    new_delete = 0 if (perm and perm['can_delete']) else 1
+    
+    cursor.execute(
+        'INSERT INTO user_permissions (user_id, can_edit, can_delete) VALUES (%s, %s, %s) '
+        'ON DUPLICATE KEY UPDATE can_edit=%s, can_delete=%s',
+        (user_id, new_edit, new_delete, new_edit, new_delete)
+    )
+    conn.commit(); cursor.close(); conn.close()
+    
+    status = 'READ-ONLY' if new_edit == 0 else 'FULL ACCESS'
+    flash(f'User sekarang dalam mode: {status}', 'info')
+    return redirect(url_for('users_management'))
+
+# ==========================================
 # 0.6 HAK AKSES / MENU PERMISSIONS (Admin Only)
 # ==========================================
 MENU_DEFINITIONS = [
