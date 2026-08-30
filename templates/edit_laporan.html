@@ -343,14 +343,6 @@ function hapusBaris(btn) {
     }
 }
 
-function hapusBaris(btn) {
-    let row = btn.closest('tr');
-    if (row.parentNode.rows.length > 1) {
-        row.remove();
-    } else {
-        alert('Minimal harus ada 1 baris!');
-    }
-}
 function tambahBarisPekerja() {
     let tbody = document.getElementById('tablePekerja').getElementsByTagName('tbody')[0];
     let newRow = tbody.insertRow();
