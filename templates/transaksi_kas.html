@@ -140,15 +140,15 @@
                         </td>
                         <td class="text-secondary small">{{ group.pembuat }}</td>
                         <td class="text-center">
-                            {% if session.role in ['admin', 'manager'] %}
+                            {% if session.role == 'admin' or (session.role in ['manager', 'user'] and session.get('can_edit', True)) %}
                             <button class="btn btn-sm btn-warning text-white rounded-2 px-2 py-1 me-1" data-bs-toggle="modal" data-bs-target="#modalEditGroup{{ loop.index }}" title="Edit">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
+                            {% endif %}
+                            {% if session.role == 'admin' or (session.role in ['manager', 'user'] and session.get('can_delete', True)) %}
                             <a href="/delete_budget/{{ group.id }}/{{ proyek.id }}" class="btn btn-sm btn-danger rounded-2 px-2 py-1" onclick="return confirm('Hapus seluruh transaksi ini?')" title="Hapus">
                                 <i class="fa-solid fa-trash"></i>
                             </a>
-                            {% else %}
-                            <span class="text-muted small">-</span>
                             {% endif %}
                         </td>
                     </tr>
