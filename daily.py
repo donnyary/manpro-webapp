@@ -2395,14 +2395,9 @@ def monthly_report(proyek_id):
     cursor.execute(sql_monthly, (proyek_id,))
     bulanan = cursor.fetchall()
     conn.close()
-    return render_template('gantt.html',
+    return render_template('monthly_report.html',
                             proyek=proyek,
-                            labels=labels,
-                            realisasi=realisasi,
-                            rencana=rencana,
-                            wbs_data=wbs_data,
-                            rencana_mingguan=rencana_mingguan,
-                            minggu_total=minggu_total)
+                            bulanan=bulanan)
 
 @app.route('/cetak_monthly/<int:proyek_id>/<string:bulan>')
 @login_required
