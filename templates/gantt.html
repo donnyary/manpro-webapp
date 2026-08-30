@@ -60,7 +60,7 @@
                                     {{ m_vals[m_idx] }}
                                 </td>
                             {% elif i >= item.start_week and i < (item.start_week + item.duration) %}
-                                <td class="bg-primary text-white fw-bold" style="font-size: 0.70rem;" title="{{ item.nama_pekerjaan }} - Mulai: M{{ ((item.start_week - 1) // 4) + 1 }}, Durasi: {{ (item.duration // 4) }} Bulan">
+                                <td class="bg-primary text-white fw-bold" style="font-size: 0.70rem;" title="{{ item.nama_pekerjaan }} - Minggu {{ item.start_week }}-{{ item.start_week + item.duration - 1 }} ({{ item.duration }} mgg)">
                                     {{ "%.2f"|format(item.bobot_persen / item.duration) }}
                                 </td>
                             {% else %}
