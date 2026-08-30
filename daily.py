@@ -514,6 +514,13 @@ CREATE TABLE IF NOT EXISTS `user_permissions` (
             conn.commit()
             print('[MIGRATE] Admin default dibuat (admin/admin123)')
 
+        # Tambah kolom m1-m6 di tabel pekerjaan jika belum ada
+        try:
+            for col in ['m1','m2','m3','m4','m5','m6']:
+                cursor.execute(f"ALTER TABLE pekerjaan ADD COLUMN IF NOT EXISTS `{col}` VARCHAR(20) DEFAULT NULL")
+        except:
+            pass
+        
         cursor.close()
         conn.close()
         print('[MIGRATE] Semua migrasi berhasil!')
