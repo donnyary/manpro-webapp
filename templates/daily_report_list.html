@@ -67,7 +67,7 @@
                             {% else %}-{% endif %}
                         </td>
                         <td>
-                            {% if session['role'] == 'admin' %}
+                            {% if session['role'] == 'admin' or session.get('can_delete', True) %}
                             <form action="{{ url_for('daily_report_hapus', id=r['id']) }}" method="POST" onsubmit="return confirm('Hapus report ini?')">
                                 <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
                             </form>
