@@ -862,6 +862,11 @@ def toggle_readonly(user_id):
     new_edit = 0 if (perm and perm['can_edit']) else 1
     new_delete = 0 if (perm and perm['can_delete']) else 1
     
+    # Ambil nama user
+    cursor.execute('SELECT username FROM users WHERE id = %s', (user_id,))
+    u = cursor.fetchone()
+    uname = u['username'] if u else 'User'
+    
     cursor.execute(
         'INSERT INTO user_permissions (user_id, can_edit, can_delete) VALUES (%s, %s, %s) '
         'ON DUPLICATE KEY UPDATE can_edit=%s, can_delete=%s',
@@ -869,8 +874,8 @@ def toggle_readonly(user_id):
     )
     conn.commit(); cursor.close(); conn.close()
     
-    status = 'READ-ONLY' if new_edit == 0 else 'FULL ACCESS'
-    flash(f'User sekarang dalam mode: {status}', 'info')
+    status = 'READ-ONLY 👁️' if new_edit == 0 else 'FULL ACCESS ✏️'
+    flash(f'User {uname} sekarang dalam mode: {status}', 'info')
     return redirect(url_for('users_management'))
 
 # ==========================================
