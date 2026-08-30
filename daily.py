@@ -1389,6 +1389,10 @@ def dashboard():
 @role_required('admin', 'manager')
 def add_project():
     if not validate_csrf(): return redirect(url_for('dashboard'))
+    # ── Permission Check ──
+    if not can_user_edit(session['user_id']):
+        flash('Anda tidak memiliki akses untuk menambah proyek!', 'danger')
+        return redirect(url_for('dashboard'))
     conn = get_db_connection()
     cursor = conn.cursor()
     sql = """INSERT INTO master_proyek (nama_kegiatan, nama_proyek, penyedia_jasa, konsultan, pemilik_proyek, lokasi, no_kontrak, tgl_mulai, pagu_kontrak_total) 
