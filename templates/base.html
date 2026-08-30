@@ -55,6 +55,11 @@
                         <li><a href="/active_sessions" class="{% if request.path == '/active_sessions' %}active{% endif %}"><i class="fa-solid fa-desktop me-2"></i> Sesi Aktif</a></li>
                         {% endif %}
                         
+                        <!-- Menu Sync Data (Admin Only) -->
+                        {% if has_menu_access('sync') %}
+                        <li><a href="/sync" class="{% if request.path == '/sync' %}active{% endif %}"><i class="fa-solid fa-arrows-rotate me-2"></i> Sync Data</a></li>
+                        {% endif %}
+                        
                         <!-- Menu Spesifik Proyek -->
                         {% if proyek and request.path != '/pengaturan' %}
                         <li class="mt-4 text-uppercase small text-white fw-bold px-2 mb-2" style="letter-spacing: 0.5px;">Menu Proyek</li>

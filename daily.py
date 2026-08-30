@@ -211,7 +211,7 @@ def get_db_connection():
 def load_permissions(role):
     """Load menu permissions dari DB ke dict. Admin selalu punya akses penuh."""
     if role == 'admin':
-        return {k: True for k in ['dashboard','pengaturan','users','active_sessions','daily_report','weekly_report','monthly_report','gantt','wbs','budget']}
+        return {k: True for k in ['dashboard','pengaturan','users','active_sessions','daily_report','weekly_report','monthly_report','gantt','wbs','budget','sync']}
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -462,7 +462,7 @@ CREATE TABLE IF NOT EXISTS `active_sessions` (
         cursor.execute("SELECT COUNT(*) FROM menu_permissions")
         if cursor.fetchone()[0] == 0:
             all_menus = ['dashboard','pengaturan','users','active_sessions',
-                         'daily_report','weekly_report','monthly_report','gantt','wbs','budget']
+                         'daily_report','weekly_report','monthly_report','gantt','wbs','budget','sync']
             defaults = {
                 'admin':   {m: 1 for m in all_menus},
                 'manager': {m: (0 if m in ('users', 'active_sessions') else 1) for m in all_menus},
@@ -701,6 +701,7 @@ MENU_DEFINITIONS = [
     {'key': 'gantt',            'label': 'Time Schedule & Kurva S', 'icon': 'fa-chart-line',          'group': 'Proyek'},
     {'key': 'wbs',              'label': 'WBS Management',          'icon': 'fa-sitemap',            'group': 'Proyek'},
     {'key': 'budget',           'label': 'Cost & Budget',           'icon': 'fa-sack-dollar',        'group': 'Proyek'},
+    {'key': 'sync',             'label': 'Sync Data',               'icon': 'fa-arrows-rotate',      'group': 'Sistem'},
 ]
 
 @app.route('/hak_akses')
@@ -854,6 +855,269 @@ def cleanup_sessions():
     conn.close()
     flash(f'{affected} record sesi lama berhasil dibersihkan.', 'info')
     return redirect(url_for('active_sessions_view'))
+
+# ==========================================
+# 0.8 SYNC DATA (Local ↔ Cloud)
+# ==========================================
+
+def get_cloud_connection():
+    """Koneksi ke TiDB Cloud untuk sync."""
+    import urllib.parse
+    database_url = os.environ.get('DATABASE_URL', '') or os.environ.get('MYSQL_URL', '') or os.environ.get('MYSQLURL', '')
+    
+    if database_url:
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'mysql://', 1)
+        if database_url.startswith('mysql://'):
+            parsed = urllib.parse.urlparse(database_url)
+            host = parsed.hostname
+            port = parsed.port or 4000
+            user = parsed.username
+            password = urllib.parse.unquote(parsed.password or '')
+            dbname = (parsed.path or '').lstrip('/') or 'db_proyek'
+            return mysql.connector.connect(
+                host=host, port=port, user=user, password=password,
+                database=dbname, ssl_disabled=False,
+                ssl_verify_cert=False, ssl_verify_identity=False
+            )
+    return None
+
+# Tabel yang bisa di-sync (dalam urutan yang benar karena foreign key)
+SYNC_TABLES = [
+    'users', 'master_proyek', 'laporan_harian', 'tenaga_kerja',
+    'peralatan', 'material', 'pekerjaan', 'kondisi_lapangan',
+    'pengesahan', 'master_wbs', 'kategori_budget', 'master_budget',
+    'menu_permissions', 'active_sessions', 'settings',
+    'kategori_biaya', 'master_kategori_biaya', 'transaksi', 'transaksi_detail'
+]
+
+@app.route('/sync')
+@role_required('admin')
+def sync_data():
+    """Halaman Sinkronisasi Data."""
+    # Cek status koneksi cloud
+    cloud_ok = False
+    cloud_info = ''
+    try:
+        conn_cloud = get_cloud_connection()
+        if conn_cloud:
+            cur = conn_cloud.cursor()
+            cur.execute('SELECT 1')
+            cur.close()
+            conn_cloud.close()
+            cloud_ok = True
+            cloud_info = 'Terhubung ke TiDB Cloud'
+        else:
+            cloud_info = 'DATABASE_URL belum di-set'
+    except Exception as e:
+        cloud_info = f'Error: {str(e)[:50]}'
+    
+    # Hitung jumlah data di lokal
+    local_counts = {}
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        for table in SYNC_TABLES:
+            try:
+                cur.execute(f'SELECT COUNT(*) FROM `{table}`')
+                local_counts[table] = cur.fetchone()[0]
+            except:
+                local_counts[table] = 0
+        cur.close()
+        conn.close()
+    except:
+        pass
+    
+    # Hitung jumlah data di cloud
+    cloud_counts = {}
+    if cloud_ok:
+        try:
+            conn_cloud = get_cloud_connection()
+            cur = conn_cloud.cursor()
+            for table in SYNC_TABLES:
+                try:
+                    cur.execute(f'SELECT COUNT(*) FROM `{table}`')
+                    cloud_counts[table] = cur.fetchone()[0]
+                except:
+                    cloud_counts[table] = 0
+            cur.close()
+            conn_cloud.close()
+        except:
+            pass
+    
+    return render_template('sync_data.html',
+                          cloud_ok=cloud_ok, cloud_info=cloud_info,
+                          local_counts=local_counts, cloud_counts=cloud_counts,
+                          sync_tables=SYNC_TABLES)
+
+@app.route('/sync/push', methods=['POST'])
+@role_required('admin')
+def sync_push():
+    """Push data dari Lokal → Cloud."""
+    if not validate_csrf(): return redirect(url_for('sync_data'))
+    
+    conn_cloud = get_cloud_connection()
+    if not conn_cloud:
+        flash('Tidak bisa koneksi ke cloud! Pastikan DATABASE_URL sudah benar.', 'danger')
+        return redirect(url_for('sync_data'))
+    
+    try:
+        conn_local = get_db_connection()
+        cur_local = conn_local.cursor()
+        cur_cloud = conn_cloud.cursor()
+        
+        cur_cloud.execute('SET FOREIGN_KEY_CHECKS=0')
+        cur_cloud.execute('SET UNIQUE_CHECKS=0')
+        
+        total = 0
+        for table in SYNC_TABLES:
+            try:
+                # Ambil struktur tabel
+                cur_local.execute(f'SHOW CREATE TABLE `{table}`')
+                create_sql = cur_local.fetchone()[1]
+                
+                # Buat/update tabel di cloud
+                cur_cloud.execute(f'DROP TABLE IF EXISTS `{table}`')
+                cur_cloud.execute(create_sql)
+                
+                # Ambil data dari lokal
+                cur_local.execute(f'SELECT * FROM `{table}`')
+                rows = cur_local.fetchall()
+                
+                if rows:
+                    cur_local.execute(f'SHOW COLUMNS FROM `{table}`')
+                    columns = [c[0] for c in cur_local.fetchall()]
+                    col_str = ', '.join([f'`{c}`' for c in columns])
+                    placeholders = ', '.join(['%s'] * len(columns))
+                    insert_sql = f'INSERT INTO `{table}` ({col_str}) VALUES ({placeholders})'
+                    cur_cloud.executemany(insert_sql, rows)
+                    total += len(rows)
+            except Exception as e:
+                print(f'[SYNC PUSH] {table}: {e}')
+        
+        cur_cloud.execute('SET FOREIGN_KEY_CHECKS=1')
+        cur_cloud.execute('SET UNIQUE_CHECKS=1')
+        conn_cloud.commit()
+        
+        cur_local.close()
+        conn_local.close()
+        cur_cloud.close()
+        conn_cloud.close()
+        
+        flash(f'Push berhasil! {total} data dikirim ke TiDB Cloud.', 'success')
+    except Exception as e:
+        flash(f'Gagal push data: {str(e)}', 'danger')
+    
+    return redirect(url_for('sync_data'))
+
+@app.route('/sync/pull', methods=['POST'])
+@role_required('admin')
+def sync_pull():
+    """Pull data dari Cloud → Lokal."""
+    if not validate_csrf(): return redirect(url_for('sync_data'))
+    
+    conn_cloud = get_cloud_connection()
+    if not conn_cloud:
+        flash('Tidak bisa koneksi ke cloud! Pastikan DATABASE_URL sudah benar.', 'danger')
+        return redirect(url_for('sync_data'))
+    
+    try:
+        conn_local = get_db_connection()
+        cur_local = conn_local.cursor()
+        cur_cloud = conn_cloud.cursor()
+        
+        cur_local.execute('SET FOREIGN_KEY_CHECKS=0')
+        cur_local.execute('SET UNIQUE_CHECKS=0')
+        
+        total = 0
+        for table in SYNC_TABLES:
+            try:
+                # Ambil struktur dari cloud
+                cur_cloud.execute(f'SHOW CREATE TABLE `{table}`')
+                create_sql = cur_cloud.fetchone()[1]
+                
+                # Buat/update tabel di lokal
+                cur_local.execute(f'DROP TABLE IF EXISTS `{table}`')
+                cur_local.execute(create_sql)
+                
+                # Ambil data dari cloud
+                cur_cloud.execute(f'SELECT * FROM `{table}`')
+                rows = cur_cloud.fetchall()
+                
+                if rows:
+                    cur_cloud.execute(f'SHOW COLUMNS FROM `{table}`')
+                    columns = [c[0] for c in cur_cloud.fetchall()]
+                    col_str = ', '.join([f'`{c}`' for c in columns])
+                    placeholders = ', '.join(['%s'] * len(columns))
+                    insert_sql = f'INSERT INTO `{table}` ({col_str}) VALUES ({placeholders})'
+                    cur_local.executemany(insert_sql, rows)
+                    total += len(rows)
+            except Exception as e:
+                print(f'[SYNC PULL] {table}: {e}')
+        
+        cur_local.execute('SET FOREIGN_KEY_CHECKS=1')
+        cur_local.execute('SET UNIQUE_CHECKS=1')
+        conn_local.commit()
+        
+        cur_local.close()
+        conn_local.close()
+        cur_cloud.close()
+        conn_cloud.close()
+        
+        flash(f'Pull berhasil! {total} data diambil dari TiDB Cloud.', 'success')
+    except Exception as e:
+        flash(f'Gagal pull data: {str(e)}', 'danger')
+    
+    return redirect(url_for('sync_data'))
+
+@app.route('/sync/bidirectional', methods=['POST'])
+@role_required('admin')
+def sync_bidirectional():
+    """Sync bidirectional - gabungkan data dari lokal dan cloud."""
+    if not validate_csrf(): return redirect(url_for('sync_data'))
+    
+    conn_cloud = get_cloud_connection()
+    if not conn_cloud:
+        flash('Tidak bisa koneksi ke cloud! Pastikan DATABASE_URL sudah benar.', 'danger')
+        return redirect(url_for('sync_data'))
+    
+    try:
+        conn_local = get_db_connection()
+        cur_local = conn_local.cursor()
+        cur_cloud = conn_cloud.cursor()
+        
+        total = 0
+        for table in SYNC_TABLES:
+            try:
+                # Ambil data dari cloud
+                cur_cloud.execute(f'SELECT * FROM `{table}`')
+                cloud_rows = cur_cloud.fetchall()
+                
+                if cloud_rows:
+                    # Ambil nama kolom
+                    cur_cloud.execute(f'SHOW COLUMNS FROM `{table}`')
+                    columns = [c[0] for c in cur_cloud.fetchall()]
+                    col_str = ', '.join([f'`{c}`' for c in columns])
+                    placeholders = ', '.join(['%s'] * len(columns))
+                    insert_sql = f'INSERT IGNORE INTO `{table}` ({col_str}) VALUES ({placeholders})'
+                    
+                    cur_local.executemany(insert_sql, cloud_rows)
+                    total += len(cloud_rows)
+            except Exception as e:
+                print(f'[SYNC BI] {table}: {e}')
+        
+        conn_local.commit()
+        
+        cur_local.close()
+        conn_local.close()
+        cur_cloud.close()
+        conn_cloud.close()
+        
+        flash(f'Sync bidirectional berhasil! {total} data digabungkan.', 'success')
+    except Exception as e:
+        flash(f'Gagal sync: {str(e)}', 'danger')
+    
+    return redirect(url_for('sync_data'))
 
 # ====================
 # DASHBOARD DLL

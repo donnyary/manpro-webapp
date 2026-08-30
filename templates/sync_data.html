@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="text-white"><i class="fas fa-arrows-rotate"></i> Sinkronisasi Data</h4>
+            <p class="text-muted">Synchronisasi data antara MySQL Lokal dan TiDB Cloud</p>
+        </div>
+    </div>
+
+    <!-- Status Koneksi -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card {% if cloud_ok %}border-success{% else %}border-danger{% endif %}">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-cloud"></i> Status Cloud
+                    </h5>
+                    {% if cloud_ok %}
+                        <span class="badge bg-success fs-6">Terhubung</span>
+                        <p class="mt-2 mb-0 text-success">{{ cloud_info }}</p>
+                    {% else %}
+                        <span class="badge bg-danger fs-6">Terputus</span>
+                        <p class="mt-2 mb-0 text-danger">{{ cloud_info }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-database"></i> Info Database
+                    </h5>
+                    <p class="mb-1"><strong>Lokal:</strong> MySQL (127.0.0.1:3306/db_proyek)</p>
+                    <p class="mb-0"><strong>Cloud:</strong> TiDB Cloud (gateway01:4000/db_proyek)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tombol Sync -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-primary h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-cloud-arrow-up fa-3x text-primary mb-3"></i>
+                    <h5>Push ke Cloud</h5>
+                    <p class="text-muted small">Kirim semua data lokal ke TiDB Cloud. Data cloud akan ditimpa.</p>
+                    {% if cloud_ok %}
+                    <form method="POST" action="{{ url_for('sync_push') }}" onsubmit="return confirm('Push semua data lokal ke Cloud? Data di Cloud akan DITIMPA!')">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-arrow-up"></i> Push Lokal → Cloud
+                        </button>
+                    </form>
+                    {% else %}
+                    <button class="btn btn-secondary btn-lg" disabled>
+                        <i class="fas fa-ban"></i> Cloud Tidak Terhubung
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-success h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-cloud-arrow-down fa-3x text-success mb-3"></i>
+                    <h5>Pull dari Cloud</h5>
+                    <p class="text-muted small">Ambil semua data dari TiDB Cloud ke lokal. Data lokal akan ditimpa.</p>
+                    {% if cloud_ok %}
+                    <form method="POST" action="{{ url_for('sync_pull') }}" onsubmit="return confirm('Pull semua data dari Cloud? Data LOKAL akan DITIMPA!')">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-arrow-down"></i> Pull Cloud → Lokal
+                        </button>
+                    </form>
+                    {% else %}
+                    <button class="btn btn-secondary btn-lg" disabled>
+                        <i class="fas fa-ban"></i> Cloud Tidak Terhubung
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-warning h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-code-merge fa-3x text-warning mb-3"></i>
+                    <h5>Sync Gabungan</h5>
+                    <p class="text-muted small">Gabungkan data dari lokal DAN cloud. Data tidak ditimpa, hanya ditambah.</p>
+                    {% if cloud_ok %}
+                    <form method="POST" action="{{ url_for('sync_bidirectional') }}" onsubmit="return confirm('Gabungkan data lokal dan Cloud?')">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-warning btn-lg">
+                            <i class="fas fa-arrows-rotate"></i> Sync Gabungan
+                        </button>
+                    </form>
+                    {% else %}
+                    <button class="btn btn-secondary btn-lg" disabled>
+                        <i class="fas fa-ban"></i> Cloud Tidak Terhubung
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel Perbandingan Data -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-table"></i> Perbandingan Data Lokal vs Cloud</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Tabel</th>
+                                    <th class="text-center">Data Lokal</th>
+                                    <th class="text-center">Data Cloud</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for table in sync_tables %}
+                                <tr>
+                                    <td><strong>{{ table }}</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">{{ local_counts.get(table, 0) }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success">{{ cloud_counts.get(table, 0) }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% set local = local_counts.get(table, 0) %}
+                                        {% set cloud = cloud_counts.get(table, 0) %}
+                                        {% if local == cloud %}
+                                            <span class="badge bg-success"><i class="fas fa-check"></i> Sync</span>
+                                        {% elif local > cloud %}
+                                            <span class="badge bg-warning"><i class="fas fa-arrow-up"></i> Lokal Lebih Banyak</span>
+                                        {% elif cloud > local %}
+                                            <span class="badge bg-info"><i class="fas fa-arrow-down"></i> Cloud Lebih Banyak</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary"><i class="fas fa-minus"></i> Kosong</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-dark">
+                                <tr>
+                                    <th><strong>TOTAL</strong></th>
+                                    <th class="text-center">{{ local_counts.values()|sum }}</th>
+                                    <th class="text-center">{{ cloud_counts.values()|sum }}</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panduan -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-secondary">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Panduan Sinkronisasi</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6 class="text-primary"><i class="fas fa-arrow-up"></i> Push (Lokal → Cloud)</h6>
+                            <ul class="small">
+                                <li>Gunakan saat Anda yakin data lokal sudah benar</li>
+                                <li>Data di Cloud akan <strong>DITIMPA</strong> oleh data lokal</li>
+                                <li>Cocok untuk update dari kantor pusat ke cloud</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-success"><i class="fas fa-arrow-down"></i> Pull (Cloud → Lokal)</h6>
+                            <ul class="small">
+                                <li>Gunakan saat Anda ingin update data lokal dari cloud</li>
+                                <li>Data di lokal akan <strong>DITIMPA</strong> oleh data cloud</li>
+                                <li>Cocok untuk download data terbaru ke komputer</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-warning"><i class="fas fa-arrows-rotate"></i> Sync Gabungan</h6>
+                            <ul class="small">
+                                <li>Gunakan untuk menggabungkan data dari 2 sumber</li>
+                                <li>Data TIDAK ditimpa, hanya data baru yang ditambahkan</li>
+                                <li>Cocok untuk merge data dari beberapa lokasi</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
