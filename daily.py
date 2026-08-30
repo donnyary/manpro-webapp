@@ -2108,10 +2108,14 @@ def weekly_report(proyek_id):
     cursor.execute("SELECT * FROM master_proyek WHERE id = %s", (proyek_id,))
     proyek = cursor.fetchone()
     sql_weekly = """
-        SELECT YEARWEEK(lh.tanggal_laporan, 1) as minggu, MIN(lh.tanggal_laporan) as awal_minggu, MAX(lh.tanggal_laporan) as akhir_minggu,
-               COUNT(DISTINCT lh.id) as total_hari_kerja, SUM(tk.hadir) as total_pekerja_hadir
-        FROM laporan_harian lh LEFT JOIN tenaga_kerja tk ON lh.id = tk.laporan_id
-        WHERE lh.proyek_id = %s GROUP BY YEARWEEK(lh.tanggal_laporan, 1), MIN(lh.tanggal_laporan), MAX(lh.tanggal_laporan) ORDER BY minggu DESC
+        SELECT minggu, MIN(tanggal_laporan) as awal_minggu, MAX(tanggal_laporan) as akhir_minggu,
+               COUNT(DISTINCT id) as total_hari_kerja, SUM(hadir) as total_pekerja_hadir
+        FROM (
+            SELECT lh.id, lh.tanggal_laporan, YEARWEEK(lh.tanggal_laporan, 1) as minggu, tk.hadir
+            FROM laporan_harian lh LEFT JOIN tenaga_kerja tk ON lh.id = tk.laporan_id
+            WHERE lh.proyek_id = %s
+        ) sub
+        GROUP BY minggu ORDER BY minggu DESC
     """
     cursor.execute(sql_weekly, (proyek_id,))
     mingguan = cursor.fetchall()
