@@ -29,6 +29,32 @@
 
     <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
         <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Riwayat Laporan Harian</h5>
+        
+        <!-- Filter -->
+        <form method="GET" class="row g-2 mb-3 p-3 bg-light rounded-3">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-secondary">Dari Tanggal</label>
+                <input type="date" class="form-control form-control-sm rounded-3" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-secondary">Sampai Tanggal</label>
+                <input type="date" class="form-control form-control-sm rounded-3" name="date_to" value="{{ date_to }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-secondary">Jenis Pekerjaan</label>
+                <select class="form-select form-select-sm rounded-3" name="jenis_pekerjaan">
+                    <option value="">Semua Pekerjaan</option>
+                    {% for j in jenis_list %}
+                    <option value="{{ j }}" {% if j == jenis_filter %}selected{% endif %}>{{ j }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3"><i class="fa-solid fa-filter me-1"></i> Filter</button>
+                <a href="/workspace/{{ proyek.id }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3"><i class="fa-solid fa-rotate-left me-1"></i> Reset</a>
+            </div>
+        </form>
+        
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
