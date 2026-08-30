@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="{{ url_for('users_management') }}" class="btn btn-secondary btn-sm mb-3">
+                <i class="fas fa-arrow-left"></i> Kembali ke Kelola User
+            </a>
+            <h4 class="text-white">
+                <i class="fas fa-user-lock"></i> Hak Akses Proyek: {{ user.username }}
+            </h4>
+            <p class="text-muted">Atur proyek mana saja yang bisa diakses dan hak edit/hapus user ini</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('manage_user_projects', user_id=user.id) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="row">
+            <!-- Akses Proyek -->
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-folder-open"></i> Pilih Proyek yang Bisa Diakses</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if all_proyeks %}
+                        <div class="row">
+                            {% for proyek in all_proyeks %}
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" 
+                                           name="proyek_access[]" value="{{ proyek.id }}" 
+                                           id="proyek_{{ proyek.id }}"
+                                           {% if proyek.id in user_proyek_ids %}checked{% endif %}>
+                                    <label class="form-check-label" for="proyek_{{ proyek.id }}">
+                                        <strong>{{ proyek.nama_proyek }}</strong>
+                                        <br><small class="text-muted">{{ proyek.nama_kegiatan }}</small>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAll()">
+                                <i class="fas fa-check-double"></i> Pilih Semua
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="deselectAll()">
+                                <i class="fas fa-times"></i> Batal Semua
+                            </button>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Belum ada proyek. Buat proyek baru terlebih dahulu.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Permission Edit/Delete -->
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-shield-halved"></i> Hak Aksi</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" name="can_edit" id="can_edit"
+                                   {% if not user_perm or user_perm.can_edit %}checked{% endif %}>
+                            <label class="form-check-label" for="can_edit">
+                                <i class="fas fa-edit text-success"></i> <strong>Boleh Edit Data</strong>
+                                <br><small class="text-muted">Sunting laporan, ubah data proyek</small>
+                            </label>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" name="can_delete" id="can_delete"
+                                   {% if not user_perm or user_perm.can_delete %}checked{% endif %}>
+                            <label class="form-check-label" for="can_delete">
+                                <i class="fas fa-trash text-danger"></i> <strong>Boleh Hapus Data</strong>
+                                <br><small class="text-muted">Hapus laporan, hapus proyek</small>
+                            </label>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" name="can_add_project" id="can_add_project"
+                                   {% if user_perm and user_perm.can_add_project %}checked{% endif %}>
+                            <label class="form-check-label" for="can_add_project">
+                                <i class="fas fa-plus-circle text-primary"></i> <strong>Boleh Tambah Proyek</strong>
+                                <br><small class="text-muted">Buat proyek baru</small>
+                            </label>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="alert alert-warning small mb-0">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Catatan:</strong> Admin dan Manager selalu punya akses penuh ke semua proyek dan bisa edit/hapus.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Info User -->
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="fas fa-user"></i> Info User</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-1"><strong>Username:</strong> {{ user.username }}</p>
+                        <p class="mb-1"><strong>Nama:</strong> {{ user.nama_lengkap }}</p>
+                        <p class="mb-0"><strong>Role:</strong> 
+                            <span class="badge {% if user.role == 'admin' %}bg-danger{% elif user.role == 'manager' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                {{ user.role|upper }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tombol Simpan -->
+        <div class="row">
+            <div class="col-12">
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fas fa-save"></i> Simpan Semua Pengaturan
+                </button>
+                <a href="{{ url_for('users_management') }}" class="btn btn-secondary btn-lg ms-2">
+                    <i class="fas fa-times"></i> Batal
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function selectAll() {
+    document.querySelectorAll('input[name="proyek_access[]"]').forEach(cb => cb.checked = true);
+}
+function deselectAll() {
+    document.querySelectorAll('input[name="proyek_access[]"]').forEach(cb => cb.checked = false);
+}
+</script>
+{% endblock %}
