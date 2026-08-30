@@ -2919,6 +2919,10 @@ def transaksi_kas_view(proyek_id):
 def add_budget(proyek_id):
     if not validate_csrf():
         return redirect(url_for('transaksi_kas_view', proyek_id=proyek_id))
+    # ── Permission Check ──
+    if not can_user_edit(session['user_id']):
+        flash('Anda tidak memiliki akses untuk menambah data!', 'danger')
+        return redirect(url_for('transaksi_kas_view', proyek_id=proyek_id))
     
     conn = get_db_connection()
     cursor = conn.cursor()
