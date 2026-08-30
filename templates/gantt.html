@@ -38,10 +38,10 @@
                         <th rowspan="2" class="align-middle">Kode</th>
                         <th rowspan="2" class="align-middle text-start">Uraian Pekerjaan</th>
                         <th rowspan="2" class="align-middle">Bobot (%)</th>
-                        <th colspan="{{ bulan_total }}" class="bg-primary bg-opacity-10">Minggu Ke-</th>
+                        <th colspan="{{ minggu_total }}" class="bg-primary bg-opacity-10">Minggu Ke-</th>
                     </tr>
                     <tr>
-                        {% for i in range(1, bulan_total + 1) %}
+                        {% for i in range(1, minggu_total + 1) %}
                         <th style="width: 55px; background: #f8f9fa;">M{{ i }}</th>
                         {% endfor %}
                     </tr>
@@ -53,7 +53,7 @@
                         <td class="text-start fw-semibold">{{ item.nama_pekerjaan }}</td>
                         <td>{{ item.bobot_persen }}</td>
                         {% set m_vals = [item.get('m1',''), item.get('m2',''), item.get('m3',''), item.get('m4',''), item.get('m5',''), item.get('m6',''), item.get('m7',''), item.get('m8',''), item.get('m9',''), item.get('m10',''), item.get('m11',''), item.get('m12','')] %}
-                        {% for i in range(1, bulan_total + 1) %}
+                        {% for i in range(1, minggu_total + 1) %}
                             {% set m_idx = i - 1 %}
                             {% if m_idx < 12 and m_vals[m_idx] != '' and m_vals[m_idx] is not none %}
                                 <td class="bg-success text-white fw-bold" style="font-size: 0.70rem;" title="{{ item.nama_pekerjaan }} - M{{ i }}: {{ m_vals[m_idx] }}">
@@ -105,7 +105,7 @@
     <div class="card shadow-sm border-0 rounded-4 p-4 bg-white border-start border-primary border-4">
         <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Kesimpulan & Evaluasi Proyek</h5>
         <ul class="mb-0 text-secondary ps-3" style="line-height: 1.8;">
-            <li><strong>Penjadwalan (Time Schedule):</strong> Distribusi item pekerjaan diselesaikan dalam {{ bulan_total }} Minggu (M1-M{{ bulan_total }}) secara proporsional berdasarkan Minggu Mulai & Minggu Selesai dari WBS.</li>
+            <li><strong>Penjadwalan (Time Schedule):</strong> Distribusi item pekerjaan diselesaikan dalam {{ minggu_total }} Minggu (M1-M{{ minggu_total }}) secara proporsional berdasarkan Minggu Mulai & Minggu Selesai dari WBS.</li>
             <li><strong>Analisis Kinerja:</strong> Warna biru menunjukkan rencana pekerjaan per minggu. Warna hijau menunjukkan realisasi aktual dari laporan harian.</li>
         </ul>
     </div>
