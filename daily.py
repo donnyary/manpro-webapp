@@ -3516,6 +3516,10 @@ def edit_anggaran_pagu(kategori, proyek_id):
 @role_required('admin')
 def edit_pagu(proyek_id):
     if not validate_csrf(): return redirect(url_for('budget_view', proyek_id=proyek_id))
+    # ── Permission Check ──
+    if not can_user_edit(session['user_id']):
+        flash('Anda tidak memiliki akses untuk mengedit data!', 'danger')
+        return redirect(url_for('budget_view', proyek_id=proyek_id))
     conn = get_db_connection()
     cursor = conn.cursor()
     pagu_baru = request.form['pagu_kontrak_total']
