@@ -2802,17 +2802,23 @@ def gantt_chart(proyek_id):
     cursor.execute("SELECT * FROM master_wbs WHERE proyek_id = %s ORDER BY id ASC", (proyek_id,))
     wbs_data = cursor.fetchall()
 
-    # 3. Hitung minggu_total dari estimasi tanggal proyek (pembulatan ke atas)
+    # 3. Hitung bulan_total dari estimasi tanggal proyek (pembulatan ke atas)
     import math
     if proyek.get('tanggal_mulai') and proyek.get('tanggal_selesai'):
-        selisih_hari = (proyek['tanggal_selesai'] - proyek['tanggal_mulai']).days + 1
-        minggu_total = max(math.ceil(selisih_hari / 7), 1)
+        tgl_mulai = proyek['tanggal_mulai']
+        tgl_selesai = proyek['tanggal_selesai']
+        # Hitung jumlah bulan berdasarkan selisih bulan + sisa hari
+        bulan_selisih = (tgl_selesai.year - tgl_mulai.year) * 12 + (tgl_selesai.month - tgl_mulai.month)
+        sisa_hari = tgl_selesai.day - tgl_mulai.day
+        if sisa_hari > 0:
+            bulan_selisih += 1  # pembulatan ke atas jika ada sisa hari
+        bulan_total = max(bulan_selisih, 1)
     else:
-        minggu_total = 12  # default 12 minggu jika belum ada tanggal
+        bulan_total = 12  # default 12 bulan jika belum ada tanggal
 
-    rencana_mingguan = [0] * minggu_total
+    rencana_mingguan = [0] * bulan_total
 
-    # Baca jadwal dari database (bulan_mulai & bulan_selesai = nomor kolom M1-M{minggu_total})
+    # Baca jadwal dari database (bulan_mulai & bulan_selesai = nomor kolom M1-M{bulan_total})
     for item in wbs_data:
         bobot = float(item.get('bobot_persen', 0))
         bm = int(item.get('bulan_mulai', 1))
@@ -2829,7 +2835,7 @@ def gantt_chart(proyek_id):
         if durasi > 0:
             monthly_val = bobot / durasi
             for m in range(bm, bs + 1):
-                if 1 <= m <= minggu_total:
+                if 1 <= m <= bulan_total:
                     rencana_mingguan[m-1] += monthly_val
 
     # 4. Hitung Rencana Kumulatif (Kurva S Rencana)
@@ -2886,7 +2892,7 @@ def gantt_chart(proyek_id):
             for k in ['m1','m2','m3','m4','m5','m6']:
                 item[k] = ''
     
-    labels = [f"M{i}" for i in range(1, minggu_total + 1)]
+    labels = [f"M{i}" for i in range(1, bulan_total + 1)]
     
     # Proses realisasi disesuaikan dengan indeks minggu
     realisasi = []
@@ -2907,7 +2913,7 @@ def gantt_chart(proyek_id):
                             rencana=rencana_kumulatif,
                             wbs_data=wbs_data,
                             rencana_mingguan=rencana_mingguan,
-                            minggu_total=minggu_total)
+                            bulan_total=bulan_total)
 # ==========================================
 # 6. WBS MANAGEMENT
 # ==========================================
@@ -2923,14 +2929,19 @@ def wbs_view(proyek_id):
     wbs_list = cursor.fetchall()
     conn.close()
 
-    # Hitung minggu_total dari estimasi tanggal proyek
+    # Hitung bulan_total dari estimasi tanggal proyek
     if proyek and proyek.get('tanggal_mulai') and proyek.get('tanggal_selesai'):
-        selisih_hari = (proyek['tanggal_selesai'] - proyek['tanggal_mulai']).days + 1
-        minggu_total = max(math.ceil(selisih_hari / 7), 1)
+        tgl_mulai = proyek['tanggal_mulai']
+        tgl_selesai = proyek['tanggal_selesai']
+        bulan_selisih = (tgl_selesai.year - tgl_mulai.year) * 12 + (tgl_selesai.month - tgl_mulai.month)
+        sisa_hari = tgl_selesai.day - tgl_mulai.day
+        if sisa_hari > 0:
+            bulan_selisih += 1  # pembulatan ke atas jika ada sisa hari
+        bulan_total = max(bulan_selisih, 1)
     else:
-        minggu_total = 12
+        bulan_total = 12
 
-    return render_template('wbs.html', proyek=proyek, wbs_list=wbs_list, minggu_total=minggu_total)
+    return render_template('wbs.html', proyek=proyek, wbs_list=wbs_list, bulan_total=bulan_total)
 
 @app.route('/add_wbs/<int:proyek_id>', methods=['POST'])
 @login_required

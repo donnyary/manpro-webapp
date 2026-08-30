@@ -86,7 +86,7 @@
                                             <div class="col-6">
                                                 <label class="form-label small fw-bold">Bulan Mulai</label>
                                                 <select class="form-select rounded-3" name="bulan_mulai" required>
-                                                    {% for m in range(1, minggu_total + 1) %}
+                                                    {% for m in range(1, bulan_total + 1) %}
                                                     <option value="{{ m }}" {% if m == w.get('bulan_mulai', 1) %}selected{% endif %}>M{{ m }}</option>
                                                     {% endfor %}
                                                 </select>
@@ -94,7 +94,7 @@
                                             <div class="col-6">
                                                 <label class="form-label small fw-bold">Bulan Selesai</label>
                                                 <select class="form-select rounded-3" name="bulan_selesai" required>
-                                                    {% for m in range(1, minggu_total + 1) %}
+                                                    {% for m in range(1, bulan_total + 1) %}
                                                     <option value="{{ m }}" {% if m == w.get('bulan_selesai', 1) %}selected{% endif %}>M{{ m }}</option>
                                                     {% endfor %}
                                                 </select>
@@ -147,7 +147,7 @@
                         <div class="col-6">
                             <label class="form-label small fw-bold">Bulan Mulai</label>
                             <select class="form-select rounded-3" name="bulan_mulai" required>
-                                {% for m in range(1, minggu_total + 1) %}
+                                {% for m in range(1, bulan_total + 1) %}
                                 <option value="{{ m }}">M{{ m }}</option>
                                 {% endfor %}
                             </select>
@@ -155,7 +155,7 @@
                         <div class="col-6">
                             <label class="form-label small fw-bold">Bulan Selesai</label>
                             <select class="form-select rounded-3" name="bulan_selesai" required>
-                                {% for m in range(1, minggu_total + 1) %}
+                                {% for m in range(1, bulan_total + 1) %}
                                 <option value="{{ m }}">M{{ m }}</option>
                                 {% endfor %}
                             </select>
