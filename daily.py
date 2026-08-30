@@ -2924,8 +2924,8 @@ def add_wbs(proyek_id):
         return redirect(url_for('wbs_view', proyek_id=proyek_id))
     conn = get_db_connection()
     cursor = conn.cursor()
-    sql = "INSERT INTO master_wbs (proyek_id, kode_wbs, nama_pekerjaan, bobot_persen) VALUES (%s, %s, %s, %s)"
-    cursor.execute(sql, (proyek_id, request.form['kode_wbs'], request.form['nama_pekerjaan'], request.form['bobot_persen']))
+    sql = "INSERT INTO master_wbs (proyek_id, kode_wbs, nama_pekerjaan, bobot_persen, bulan_mulai, durasi_bulan) VALUES (%s, %s, %s, %s, %s, %s)"
+    cursor.execute(sql, (proyek_id, request.form['kode_wbs'], request.form['nama_pekerjaan'], request.form['bobot_persen'], request.form.get('bulan_mulai', 1), request.form.get('durasi_bulan', 1)))
     conn.commit()
     cursor.close()
     conn.close()
@@ -2942,8 +2942,8 @@ def edit_wbs(id, proyek_id):
         return redirect(url_for('wbs_view', proyek_id=proyek_id))
     conn = get_db_connection()
     cursor = conn.cursor()
-    sql = "UPDATE master_wbs SET kode_wbs = %s, nama_pekerjaan = %s, bobot_persen = %s WHERE id = %s"
-    cursor.execute(sql, (request.form['kode_wbs'], request.form['nama_pekerjaan'], request.form['bobot_persen'], id))
+    sql = "UPDATE master_wbs SET kode_wbs = %s, nama_pekerjaan = %s, bobot_persen = %s, bulan_mulai = %s, durasi_bulan = %s WHERE id = %s"
+    cursor.execute(sql, (request.form['kode_wbs'], request.form['nama_pekerjaan'], request.form['bobot_persen'], request.form.get('bulan_mulai', 1), request.form.get('durasi_bulan', 1), id))
     conn.commit()
     cursor.close()
     conn.close()
