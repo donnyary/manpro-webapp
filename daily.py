@@ -3090,6 +3090,10 @@ def add_kategori_budget(proyek_id):
 @role_required('admin', 'manager')
 def edit_kategori_budget(id, proyek_id):
     if not validate_csrf(): return redirect(url_for('pengaturan_proyek', proyek_id=proyek_id))
+    # ── Permission Check ──
+    if not can_user_edit(session['user_id']):
+        flash('Anda tidak memiliki akses untuk mengedit data!', 'danger')
+        return redirect(url_for('pengaturan_proyek', proyek_id=proyek_id))
     nama_baru = request.form.get('nama_kategori', '').strip().upper()
     if nama_baru:
         conn = get_db_connection()
