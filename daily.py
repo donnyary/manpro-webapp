@@ -1289,6 +1289,9 @@ def sync_push():
 def sync_pull():
     """Pull data dari Cloud → Lokal."""
     if not validate_csrf(): return redirect(url_for('sync_data'))
+    if is_cloud_environment():
+        flash('Sync hanya bisa dijalankan dari komputer lokal!', 'warning')
+        return redirect(url_for('sync_data'))
     
     conn_cloud = get_cloud_connection()
     if not conn_cloud:
