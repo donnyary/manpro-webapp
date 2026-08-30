@@ -2090,6 +2090,10 @@ def upload_dokumen(id):
 @app.route('/delete/<int:id>/<int:proyek_id>')
 @login_required
 def hapus_laporan(id, proyek_id):
+    # ── Permission Check ──
+    if not can_user_delete(session['user_id']):
+        flash('Anda tidak memiliki akses untuk menghapus data!', 'danger')
+        return redirect(url_for('workspace_history', proyek_id=proyek_id))
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM laporan_harian WHERE id = %s", (id,))
