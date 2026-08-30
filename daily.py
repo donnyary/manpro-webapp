@@ -1037,21 +1037,37 @@ def get_cloud_connection():
     import urllib.parse
     database_url = os.environ.get('DATABASE_URL', '') or os.environ.get('MYSQL_URL', '') or os.environ.get('MYSQLURL', '')
     
+    # Default values
+    host = os.environ.get('MYSQLHOST', '') or ''
+    port = int(os.environ.get('MYSQLPORT', '4000') or '4000')
+    user = os.environ.get('MYSQLUSER', '') or ''
+    password = os.environ.get('MYSQLPASSWORD', '') or ''
+    dbname = os.environ.get('MYSQLDATABASE', '') or 'db_proyek'
+    
     if database_url:
-        if database_url.startswith('postgres://'):
-            database_url = database_url.replace('postgres://', 'mysql://', 1)
-        if database_url.startswith('mysql://'):
-            parsed = urllib.parse.urlparse(database_url)
-            host = parsed.hostname
-            port = parsed.port or 4000
-            user = parsed.username
-            password = urllib.parse.unquote(parsed.password or '')
-            dbname = (parsed.path or '').lstrip('/') or 'db_proyek'
-            return mysql.connector.connect(
+        try:
+            if database_url.startswith('postgres://'):
+                database_url = database_url.replace('postgres://', 'mysql://', 1)
+            if database_url.startswith('mysql://'):
+                parsed = urllib.parse.urlparse(database_url)
+                host = parsed.hostname or host
+                port = parsed.port or port
+                user = parsed.username or user
+                password = urllib.parse.unquote(parsed.password or '') or password
+                dbname = (parsed.path or '').lstrip('/') or dbname
+        except:
+            pass
+    
+    if host and user:
+        try:
+            conn = mysql.connector.connect(
                 host=host, port=port, user=user, password=password,
                 database=dbname, ssl_disabled=False,
                 ssl_verify_cert=False, ssl_verify_identity=False
             )
+            return conn
+        except:
+            return None
     return None
 
 # Tabel yang bisa di-sync (dalam urutan yang benar karena foreign key)
