@@ -34,3 +34,4 @@ Thumbs.db
 
 # Test files
 test_export*.xlsx
+server.log
