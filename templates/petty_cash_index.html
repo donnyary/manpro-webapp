@@ -111,8 +111,10 @@
                                 <td class="text-end fw-bold">{{ t.total_transaksi | currency }}</td>
                                 <td class="text-center"><small>{{ t.pembuat }}</small></td>
                                 <td class="text-center">
+                                    {% if session.get('can_edit', True) %}
                                     <a href="{{ url_for('edit_transaksi', id=t.id) }}" class="btn btn-warning btn-sm" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
-                                    {% if session.role == 'admin' %}
+                                    {% endif %}
+                                    {% if session.role == 'admin' or session.get('can_delete', True) %}
                                     <form action="{{ url_for('hapus_transaksi', id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus transaksi ini?')"><button type="submit" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button></form>
                                     {% endif %}
                                 </td>
