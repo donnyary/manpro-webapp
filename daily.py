@@ -1619,6 +1619,10 @@ def edit_laporan(id, proyek_id):
 @login_required
 def update_laporan():
     if not validate_csrf(): return redirect(url_for('dashboard'))
+    # ── Permission Check ──
+    if not can_user_edit(session['user_id']):
+        flash('Anda tidak memiliki akses untuk mengedit data!', 'danger')
+        return redirect(url_for('dashboard'))
         
     laporan_id = request.form['laporan_id']
     proyek_id = request.form['proyek_id']
