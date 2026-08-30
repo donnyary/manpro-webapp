@@ -538,6 +538,16 @@ CREATE TABLE IF NOT EXISTS `user_permissions` (
             cursor.execute("UPDATE master_wbs SET bulan_selesai = bulan_mulai WHERE bulan_selesai IS NULL OR bulan_selesai = 0")
         except:
             pass
+
+        # Tambah kolom tanggal_mulai & tanggal_selesai di master_proyek
+        try:
+            cursor.execute("ALTER TABLE master_proyek ADD COLUMN tanggal_mulai DATE DEFAULT NULL")
+        except:
+            pass
+        try:
+            cursor.execute("ALTER TABLE master_proyek ADD COLUMN tanggal_selesai DATE DEFAULT NULL")
+        except:
+            pass
         
         cursor.close()
         conn.close()
