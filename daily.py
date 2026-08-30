@@ -740,40 +740,45 @@ def can_user_access_project(user_id, proyek_id):
         return True  # Jika tabel belum ada, izinkan semua
 
 def can_user_edit(user_id):
-    """Cek apakah user boleh edit/delete data. Admin/manager selalu bisa."""
+    """Cek apakah user boleh edit data. Admin selalu bisa, manager/user cek permission."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
         cursor.execute('SELECT role FROM users WHERE id = %s', (user_id,))
         user = cursor.fetchone()
-        if not user or user['role'] in ('admin', 'manager'):
+        if not user or user['role'] == 'admin':
             cursor.close(); conn.close()
             return True
         
         cursor.execute('SELECT can_edit FROM user_permissions WHERE user_id = %s', (user_id,))
         perm = cursor.fetchone()
         cursor.close(); conn.close()
-        return perm['can_edit'] if perm else True
+        # Default: manager bisa edit, user juga bisa (kecuali di-set read-only)
+        if perm:
+            return bool(perm['can_edit'])
+        return True  # Belum ada record permission = boleh edit
     except:
         return True
 
 def can_user_delete(user_id):
-    """Cek apakah user boleh hapus data. Admin/manager selalu bisa."""
+    """Cek apakah user boleh hapus data. Admin selalu bisa, manager/user cek permission."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
         cursor.execute('SELECT role FROM users WHERE id = %s', (user_id,))
         user = cursor.fetchone()
-        if not user or user['role'] in ('admin', 'manager'):
+        if not user or user['role'] == 'admin':
             cursor.close(); conn.close()
             return True
         
         cursor.execute('SELECT can_delete FROM user_permissions WHERE user_id = %s', (user_id,))
         perm = cursor.fetchone()
         cursor.close(); conn.close()
-        return perm['can_delete'] if perm else True
+        if perm:
+            return bool(perm['can_delete'])
+        return True  # Belum ada record permission = boleh hapus
     except:
         return True
 
