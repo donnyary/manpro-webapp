@@ -1712,9 +1712,17 @@ def update_laporan():
                     (laporan_id, nama_material[i], request.form.getlist('volume_material[]')[i], request.form.getlist('satuan_material[]')[i], request.form.getlist('ket_material[]')[i]))
         
         jenis_pekerjaan = request.form.getlist('jenis_pekerjaan[]')
+        m1_list = request.form.getlist('m1[]')
+        m2_list = request.form.getlist('m2[]')
+        m3_list = request.form.getlist('m3[]')
+        m4_list = request.form.getlist('m4[]')
+        m5_list = request.form.getlist('m5[]')
+        m6_list = request.form.getlist('m6[]')
         for i in range(len(jenis_pekerjaan)):
-            cursor.execute("INSERT INTO pekerjaan (laporan_id, jenis_pekerjaan, lokasi, vol_harian, proses_kumulatif, target_harian, keterangan) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                (laporan_id, jenis_pekerjaan[i], request.form.getlist('lokasi_pekerjaan[]')[i], request.form.getlist('vol_harian[]')[i], request.form.getlist('proses_kumulatif[]')[i], request.form.getlist('target_harian[]')[i], request.form.getlist('ket_pekerjaan[]')[i]))
+            cursor.execute("INSERT INTO pekerjaan (laporan_id, jenis_pekerjaan, lokasi, vol_harian, proses_kumulatif, target_harian, keterangan, m1, m2, m3, m4, m5, m6) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (laporan_id, jenis_pekerjaan[i], request.form.getlist('lokasi_pekerjaan[]')[i], request.form.getlist('vol_harian[]')[i], request.form.getlist('proses_kumulatif[]')[i], request.form.getlist('target_harian[]')[i], request.form.getlist('ket_pekerjaan[]')[i],
+                 m1_list[i] if i < len(m1_list) else '', m2_list[i] if i < len(m2_list) else '', m3_list[i] if i < len(m3_list) else '',
+                 m4_list[i] if i < len(m4_list) else '', m5_list[i] if i < len(m5_list) else '', m6_list[i] if i < len(m6_list) else ''))
         
         cursor.execute("UPDATE kondisi_lapangan SET akses = %s, k3 = %s, kondisi_fisik = %s, hambatan = %s, tak_terencana = %s WHERE laporan_id = %s",
             (request.form['akses_lapangan'], request.form['keselamatan'], request.form['kondisi_lapangan'], request.form['faktor_penghambat'], request.form['kegiatan_tak_terencana'], laporan_id))
