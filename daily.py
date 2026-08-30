@@ -404,6 +404,24 @@ CREATE TABLE IF NOT EXISTS `active_sessions` (
     KEY `idx_session_token` (`session_token`),
     KEY `idx_is_active` (`is_active`)
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `user_projects` (
+    `id`         INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id`    INT NOT NULL,
+    `proyek_id`  INT NOT NULL,
+    UNIQUE KEY `uniq_user_proyek` (`user_id`, `proyek_id`),
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+    FOREIGN KEY (`proyek_id`) REFERENCES `master_proyek`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `user_permissions` (
+    `id`              INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id`         INT NOT NULL UNIQUE,
+    `can_edit`        TINYINT(1) NOT NULL DEFAULT 1,
+    `can_delete`      TINYINT(1) NOT NULL DEFAULT 1,
+    `can_add_project` TINYINT(1) NOT NULL DEFAULT 0,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
 """
 
     try:
