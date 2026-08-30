@@ -1535,69 +1535,6 @@ def workspace_history(proyek_id):
                            jenis_list=jenis_list, date_from=date_from, date_to=date_to,
                            jenis_filter=jenis_filter)
 
-def _hitung_kumulatif_bulanan(cursor, proyek_id):
-    """Hitung M1/M2/M3 dari kumulatif aktual laporan terakhir per bulan per jenis pekerjaan."""
-    # Ambil kumulatif terakhir per bulan per jenis pekerjaan
-    cursor.execute("""
-        SELECT p.jenis_pekerjaan,
-               DATE_FORMAT(lh.tanggal_laporan, '%%Y-%%m') as bulan,
-               MAX(CAST(REPLACE(REPLACE(p.proses_kumulatif, '%%', ''), ',', '.') AS DECIMAL(7,2))) as kumulatif
-        FROM pekerjaan p
-        JOIN laporan_harian lh ON p.laporan_id = lh.id
-        WHERE lh.proyek_id = %s AND p.proses_kumulatif IS NOT NULL AND p.proses_kumulatif != ''
-        GROUP BY p.jenis_pekerjaan, bulan
-        ORDER BY p.jenis_pekerjaan, bulan
-    """, (proyek_id,))
-    rows = cursor.fetchall()
-    
-    # Group by jenis pekerjaan
-    data = {}  # {jenis: {bulan: kumulatif}}
-    for r in rows:
-        jp = r['jenis_pekerjaan']
-        bln = r['bulan']
-        kum = float(r['kumulatif']) if r['kumulatif'] else 0
-        if jp not in data:
-            data[jp] = {}
-        data[jp][bln] = kum
-    
-    # Hitung M1/M2/M3 (kumulatif di akhir bulan ke-1, ke-2, ke-3 dari awal proyek)
-    # Cari bulan awal proyek
-    cursor.execute("SELECT MIN(tanggal_laporan) as mulai FROM laporan_harian WHERE proyek_id = %s", (proyek_id,))
-    mulai = cursor.fetchone()
-    if not mulai or not mulai['mulai']:
-        return {}
-    
-    from datetime import datetime
-    mulai_date = mulai['mulai']
-    if isinstance(mulai_date, str):
-        mulai_date = datetime.strptime(mulai_date, '%Y-%m-%d').date()
-    
-    # Generate bulan M1, M2, M3... dari bulan awal
-    wbs_target_bulanan = {}
-    for jp, bulan_data in data.items():
-        targets = {}
-        # M1 = bulan ke-1, M2 = bulan ke-2, M3 = bulan ke-3
-        for m in range(1, 13):
-            # Hitung bulan target
-            target_month = mulai_date.month + m - 1
-            target_year = mulai_date.year + (target_month - 1) // 12
-            target_month = ((target_month - 1) % 12) + 1
-            target_key = f'{target_year}-{target_month:02d}'
-            
-            # Cari kumulatif terakhir di bulan ini atau sebelumnya
-            kum_val = 0
-            for bln_key in sorted(bulan_data.keys()):
-                if bln_key <= target_key:
-                    kum_val = bulan_data[bln_key]
-                else:
-                    break
-            if kum_val > 0:
-                targets[f'M{m}'] = kum_val
-        if targets:
-            wbs_target_bulanan[jp] = targets
-    
-    return wbs_target_bulanan
-
 @app.route('/input/<int:proyek_id>')
 @login_required
 def input_laporan(proyek_id):
