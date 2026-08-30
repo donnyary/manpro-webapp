@@ -176,28 +176,24 @@ def get_db_connection():
             else:
                 db_user, db_password = user_pass, ''
             
+            # Hapus query params (?sslmode=... dst)
             if '?' in host_rest:
-                host_db, query = host_rest.split('?', 1)
-            else:
-                host_db, query = host_rest, ''
+                host_rest = host_rest.split('?', 1)[0]
             
-            if ':' in host_db:
-                db_host, db_port = host_db.split(':', 1)
+            # Parse host:port/dbname
+            if '/' in host_rest:
+                host_port, db_name = host_rest.split('/', 1)
+            else:
+                host_port = host_rest
+                db_name = 'db_proyek'
+            
+            # Parse host:port
+            if ':' in host_port:
+                db_host, db_port = host_port.rsplit(':', 1)
                 db_port = int(db_port)
             else:
-                db_host, db_port = host_db, 3306
-            
-            if '/' in db_host:
-                db_host, db_name = db_host.split('/', 1)
-            else:
-                db_name = ''
-        else:
-            # Fallback: gunakan env vars
-            db_host = os.environ.get('DB_HOST', '127.0.0.1')
-            db_port = int(os.environ.get('DB_PORT', 3306))
-            db_user = os.environ.get('DB_USER', 'root')
-            db_password = os.environ.get('DB_PASSWORD', '')
-            db_name = os.environ.get('DB_NAME', 'db_proyek')
+                db_host = host_port
+                db_port = 3306
     
     # Jika tidak ada URL dan tidak ada host dari Railway, gunakan default lokal
     if not database_url and not db_host:
