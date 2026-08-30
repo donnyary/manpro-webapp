@@ -38,7 +38,7 @@
                         <th rowspan="2" class="align-middle">Kode</th>
                         <th rowspan="2" class="align-middle text-start">Uraian Pekerjaan</th>
                         <th rowspan="2" class="align-middle">Bobot (%)</th>
-                        <th colspan="{{ minggu_total }}" class="bg-primary bg-opacity-10">Minggu Ke-</th>
+                        <th colspan="{{ minggu_total }}" class="bg-primary bg-opacity-10">Bulan Ke-</th>
                     </tr>
                     <tr>
                         {% for i in range(1, minggu_total + 1) %}
@@ -72,7 +72,7 @@
                 </tbody>
                 <tfoot class="table-light fw-bold text-dark">
                     <tr>
-                        <td colspan="2" class="text-end">Rencana Mingguan (%)</td>
+                        <td colspan="2" class="text-end">Rencana Bulanan (%)</td>
                         <td></td>
                         {% for rm in rencana_mingguan %}
                         <td class="text-secondary" style="font-size: 0.75rem;">{{ "%.2f"|format(rm) }}</td>
@@ -97,7 +97,7 @@
             <canvas id="kurvaSChart"></canvas>
         </div>
         <div class="text-center mt-2 no-print">
-            <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i> *Histogram abu-abu menunjukkan bobot rencana mingguan, garis putus-putus hijau adalah kurva S rencana kumulatif, dan garis biru adalah realisasi aktual.</small>
+            <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i> *Histogram abu-abu menunjukkan bobot rencana bulanan, garis putus-putus hijau adalah kurva S rencana kumulatif, dan garis biru adalah realisasi aktual.</small>
         </div>
     </div>
 
@@ -105,7 +105,7 @@
     <div class="card shadow-sm border-0 rounded-4 p-4 bg-white border-start border-primary border-4">
         <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Kesimpulan & Evaluasi Proyek</h5>
         <ul class="mb-0 text-secondary ps-3" style="line-height: 1.8;">
-            <li><strong>Penjadwalan (Time Schedule):</strong> Distribusi item pekerjaan diselesaikan dalam {{ minggu_total }} Minggu (M1-M{{ minggu_total }}) secara proporsional berdasarkan Minggu Mulai & Minggu Selesai dari WBS.</li>
+            <li><strong>Penjadwalan (Time Schedule):</strong> Distribusi item pekerjaan diselesaikan dalam {{ minggu_total }} Bulan (M1-M{{ minggu_total }}) secara proporsional berdasarkan Bulan Mulai & Bulan Selesai dari WBS.</li>
             <li><strong>Analisis Kinerja:</strong> Warna biru menunjukkan rencana pekerjaan per minggu. Warna hijau menunjukkan realisasi aktual dari laporan harian.</li>
         </ul>
     </div>
@@ -133,7 +133,7 @@
             datasets: [
                 {
                     type: 'bar', // Histogram beban kerja mingguan
-                    label: 'Rencana Mingguan (%)',
+                    label: 'Rencana Bulanan (%)',
                     data: {{ rencana_mingguan | safe }},
                     backgroundColor: 'rgba(108, 117, 125, 0.25)',
                     borderColor: '#6c757d',
@@ -184,7 +184,7 @@
                     title: { display: true, text: 'Prosentase (%)', font: { weight: 'bold' } } 
                 },
                 x: { 
-                    title: { display: true, text: 'Periode Waktu (Minggu)', font: { weight: 'bold' } } 
+                    title: { display: true, text: 'Periode Waktu (Bulan)', font: { weight: 'bold' } } 
                 }
             }
         }
