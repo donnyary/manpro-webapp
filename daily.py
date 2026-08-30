@@ -1352,6 +1352,9 @@ def sync_pull():
 def sync_bidirectional():
     """Sync bidirectional - gabungkan data dari lokal dan cloud."""
     if not validate_csrf(): return redirect(url_for('sync_data'))
+    if is_cloud_environment():
+        flash('Sync hanya bisa dijalankan dari komputer lokal!', 'warning')
+        return redirect(url_for('sync_data'))
     
     conn_cloud = get_cloud_connection()
     if not conn_cloud:
