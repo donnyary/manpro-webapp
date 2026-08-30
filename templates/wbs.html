@@ -82,6 +82,20 @@
                                             <label class="form-label small fw-bold">Bobot (%)</label>
                                             <input type="number" step="0.01" class="form-control rounded-3" name="bobot_persen" value="{{ w.bobot_persen }}" placeholder="0.00" required>
                                         </div>
+                                        <div class="row g-3">
+                                            <div class="col-6">
+                                                <label class="form-label small fw-bold">Bulan Mulai (M1/M2/M3...)</label>
+                                                <select class="form-select rounded-3" name="bulan_mulai" required>
+                                                    {% for m in range(1, 25) %}
+                                                    <option value="{{ m }}" {% if m == w.get('bulan_mulai', 1) %}selected{% endif %}>M{{ m }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small fw-bold">Durasi (Bulan)</label>
+                                                <input type="number" class="form-control rounded-3" name="durasi_bulan" value="{{ w.get('durasi_bulan', 1) }}" min="1" max="24" required>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="modal-footer bg-light">
                                         <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
