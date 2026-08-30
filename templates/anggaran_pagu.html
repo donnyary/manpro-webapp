@@ -44,9 +44,13 @@
                     <td><span class="badge bg-secondary p-2">{{ p.kategori }}</span></td>
                     <td class="text-primary fw-bold">Rp {{ "{:,.0f}".format(p.anggaran_pagu) }}</td>
                     <td class="text-center">
+                        {% if session.get('can_edit', True) %}
                         <button class="btn btn-sm btn-warning text-white" data-bs-toggle="modal" data-bs-target="#modalEditPagu{{ loop.index }}">
                             <i class="fa-solid fa-pen-to-square"></i> Edit Pagu
                         </button>
+                        {% else %}
+                        <span class="text-muted small">Read Only</span>
+                        {% endif %}
                     </td>
                 </tr>
 
