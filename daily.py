@@ -3108,6 +3108,10 @@ def edit_kategori_budget(id, proyek_id):
 @app.route('/delete_kategori_budget/<int:id>/<int:proyek_id>')
 @role_required('admin', 'manager')
 def delete_kategori_budget(id, proyek_id):
+    # ── Permission Check ──
+    if not can_user_delete(session['user_id']):
+        flash('Anda tidak memiliki akses untuk menghapus data!', 'danger')
+        return redirect(url_for('pengaturan_proyek', proyek_id=proyek_id))
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
