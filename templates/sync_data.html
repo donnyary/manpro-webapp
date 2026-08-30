@@ -118,6 +118,19 @@
     {% endif %}
 
     <!-- Tombol Sync -->
+    {% if is_cloud() %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-secondary">
+                <div class="card-body text-center py-4">
+                    <i class="fas fa-lock fa-3x text-secondary mb-3"></i>
+                    <h5 class="text-secondary">Sync Tidak Tersedia di Cloud</h5>
+                    <p class="text-muted mb-0">Fitur sync hanya bisa dijalankan dari <strong>komputer lokal</strong>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
     <div class="row mb-4">
         <div class="col-md-4">
             <div class="card border-primary h-100">
