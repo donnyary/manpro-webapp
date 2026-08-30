@@ -72,7 +72,7 @@
                 </tbody>
                 <tfoot class="table-light fw-bold text-dark">
                     <tr>
-                        <td colspan="2" class="text-end">Rencana Bulanan (%)</td>
+                        <td colspan="2" class="text-end">Rencana Mingguan (%)</td>
                         <td></td>
                         {% for rm in rencana_bulanan %}
                         <td class="text-secondary" style="font-size: 0.75rem;">{{ "%.2f"|format(rm) }}</td>
@@ -132,8 +132,8 @@
             labels: {{ labels | safe }},
             datasets: [
                 {
-                    type: 'bar', // Histogram beban kerja bulanan
-                    label: 'Rencana Bulanan (%)',
+                    type: 'bar', // Histogram beban kerja mingguan
+                    label: 'Rencana Mingguan (%)',
                     data: {{ rencana_bulanan | safe }},
                     backgroundColor: 'rgba(108, 117, 125, 0.25)',
                     borderColor: '#6c757d',
