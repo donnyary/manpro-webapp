@@ -1525,6 +1525,10 @@ def input_laporan(proyek_id):
 def submit():
     if request.method == 'POST':
         if not validate_csrf(): return redirect(url_for('dashboard'))
+        # ── Permission Check ──
+        if not can_user_edit(session['user_id']):
+            flash('Anda tidak memiliki akses untuk menambah data!', 'danger')
+            return redirect(url_for('dashboard'))
         proyek_id = request.form['proyek_id']
         conn = get_db_connection()
         cursor = conn.cursor()
