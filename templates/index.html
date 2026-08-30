@@ -163,7 +163,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><select class="form-select form-select-sm" name="jenis_pekerjaan[]" required>
+                            <td><select class="form-select form-select-sm" name="jenis_pekerjaan[]" required onchange="toggleCustomInput(this)">
                                 <option value="" selected disabled>-- Pilih Pekerjaan --</option>
                                 {% for wbs in wbs_list %}
                                 <option value="{{ wbs }}">{{ wbs }}</option>
