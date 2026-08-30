@@ -227,7 +227,9 @@
                             <td><input type="text" class="form-control form-control-sm" name="lokasi_pekerjaan[]" value="{{ pk.lokasi }}"></td>
                             <td><input type="text" class="form-control form-control-sm" name="vol_harian[]" value="{{ pk.vol_harian }}"></td>
                             <td><input type="text" class="form-control form-control-sm" name="proses_kumulatif[]" value="{{ pk.proses_kumulatif }}"></td>
-                            <td><input type="text" class="form-control form-control-sm" name="target_harian[]" value="{{ pk.target_harian }}"></td>
+                            <td class="text-center"><small class="text-info fw-bold">{{ wbs_target_bulanan.get(pk.jenis_pekerjaan, {}).get('M1', '-') }}%</small></td>
+                            <td class="text-center"><small class="text-info fw-bold">{{ wbs_target_bulanan.get(pk.jenis_pekerjaan, {}).get('M2', '-') }}%</small></td>
+                            <td class="text-center"><small class="text-info fw-bold">{{ wbs_target_bulanan.get(pk.jenis_pekerjaan, {}).get('M3', '-') }}%</small></td>
                             <td><input type="text" class="form-control form-control-sm" name="ket_pekerjaan[]" value="{{ pk.keterangan }}"></td>
                             <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
                         </tr>
