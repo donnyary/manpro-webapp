@@ -517,7 +517,10 @@ CREATE TABLE IF NOT EXISTS `user_permissions` (
         # Tambah kolom m1-m6 di tabel pekerjaan jika belum ada
         try:
             for col in ['m1','m2','m3','m4','m5','m6']:
-                cursor.execute(f"ALTER TABLE pekerjaan ADD COLUMN IF NOT EXISTS `{col}` VARCHAR(20) DEFAULT NULL")
+                try:
+                    cursor.execute(f"ALTER TABLE pekerjaan ADD COLUMN `{col}` VARCHAR(20) DEFAULT NULL")
+                except:
+                    pass  # Kolom sudah ada
         except:
             pass
         
