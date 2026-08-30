@@ -2784,7 +2784,15 @@ def gantt_chart(proyek_id):
     wbs_data = cursor.fetchall()
 
     # 3. Setup Variabel Kalkulasi Time Schedule
-    minggu_total = 12 # Proyek dijadwalkan selesai dalam 12 minggu
+    # Hitung minggu_total dari WBS terpanjang
+    max_akhir = 0
+    for item in wbs_data:
+        bm = int(item.get('bulan_mulai', 1))
+        db = int(item.get('durasi_bulan', 1))
+        akhir = bm + db - 1
+        if akhir > max_akhir:
+            max_akhir = akhir
+    minggu_total = max(max_akhir * 4, 12)  # minimal 12 minggu
     rencana_mingguan = [0] * minggu_total
 
     # Baca jadwal dari database (bulan_mulai & durasi_bulan)
