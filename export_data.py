@@ -6,7 +6,11 @@ Jalankan: python export_data.py
 
 import mysql.connector
 import os
+import sys
 from datetime import datetime
+
+# Fix Windows console encoding
+sys.stdout.reconfigure(encoding='utf-8')
 
 # Koneksi ke TiDB Cloud (sama seperti daily.py)
 DB_CONFIG = {
