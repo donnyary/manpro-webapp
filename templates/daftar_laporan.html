@@ -71,6 +71,7 @@
                     <tr>
                         <td class="fw-semibold">{{ l.tanggal_laporan }}</td>
                         <td><span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">{{ l.cuaca }}</span></td>
+                        <td><small class="text-muted">{{ l.jenis_pekerjaan }}</small></td>
                         <td>
                             {% if l.dokumen_upload %}
                             <a href="{{ url_for('static', filename='uploads/' + l.dokumen_upload) }}" target="_blank" class="text-decoration-none small text-primary"><i class="fa-solid fa-file-pdf me-1"></i> Lihat File</a>
