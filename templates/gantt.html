@@ -60,7 +60,7 @@
                                     {{ m_vals[m_idx] }}
                                 </td>
                             {% elif i >= item.start_month and i <= item.end_month %}
-                                <td class="bg-primary text-white fw-bold" style="font-size: 0.70rem;" title="{{ item.nama_pekerjaan }} - M{{ item.start_month }} s/d M{{ item.end_month }} ({{ item.duration_bulan }} bln)">
+                                <td class="bg-primary text-white fw-bold" style="font-size: 0.70rem;" title="{{ item.nama_pekerjaan }} - M{{ item.start_month }} s/d M{{ item.end_month }} ({{ item.duration_bulan }} mgg)">
                                     {{ "%.2f"|format(item.bobot_persen / item.duration_bulan) }}
                                 </td>
                             {% else %}
