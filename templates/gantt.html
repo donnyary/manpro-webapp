@@ -33,16 +33,21 @@
         <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-table-list me-2 text-primary"></i>Time Schedule & Barchart WBS</h5>
         <div class="table-responsive">
             <table class="table table-bordered table-sm align-middle text-center" style="font-size: 0.80rem;">
+                {% set bulan_total = (minggu_total / 4)|int %}
                 <thead class="table-light">
                     <tr>
                         <th rowspan="2" class="align-middle">Kode</th>
                         <th rowspan="2" class="align-middle text-start">Uraian Pekerjaan</th>
                         <th rowspan="2" class="align-middle">Bobot (%)</th>
-                        <th colspan="{{ minggu_total }}">Bulan / Minggu Ke-</th>
+                        {% for m in range(1, bulan_total + 1) %}
+                        <th colspan="4" class="bg-primary bg-opacity-10">M{{ m }}</th>
+                        {% endfor %}
                     </tr>
                     <tr>
-                        {% for i in range(1, minggu_total + 1) %}
-                        <th style="width: 35px; background: #f8f9fa;">M{{ i }}</th>
+                        {% for m in range(1, bulan_total + 1) %}
+                        {% for wk in range(1, 5) %}
+                        <th style="width: 35px; background: #f8f9fa; font-size: 0.7rem;">{{ wk }}</th>
+                        {% endfor %}
                         {% endfor %}
                     </tr>
                 </thead>
