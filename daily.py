@@ -1171,6 +1171,10 @@ def sync_data():
         except:
             pass
     
+    # Di cloud, auto-sync tidak aktif (tidak ada MySQL lokal)
+    if is_cloud_environment():
+        _sync_state['auto_sync_enabled'] = False
+    
     return render_template('sync_data.html',
                           cloud_ok=cloud_ok, cloud_info=cloud_info,
                           local_counts=local_counts, cloud_counts=cloud_counts,
