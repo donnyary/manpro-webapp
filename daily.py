@@ -3658,54 +3658,98 @@ def _get_table_columns(cursor, table_name):
     return [row[0] for row in cursor.fetchall()]
 
 
+def _get_natural_key_columns(table_name):
+    """Ambil kolom natural key untuk tabel tertentu."""
+    # Single natural key
+    nk = NATURAL_KEYS.get(table_name)
+    if nk:
+        return [nk]
+    # Composite key
+    ck = COMPOSITE_KEYS.get(table_name)
+    if ck:
+        return ck
+    return None
+
+
+def _record_exists(cursor, table_name, key_cols, row):
+    """Cek apakah record sudah ada berdasarkan natural key."""
+    if not key_cols:
+        return None
+    
+    conditions = ' AND '.join([f'`{k}` = %s' for k in key_cols])
+    vals = [row.get(k) for k in key_cols]
+    
+    # Handle datetime
+    for i, v in enumerate(vals):
+        if hasattr(v, 'isoformat'):
+            vals[i] = v.isoformat()
+    
+    try:
+        cursor.execute(f'SELECT id FROM `{table_name}` WHERE {conditions} LIMIT 1', vals)
+        result = cursor.fetchone()
+        if result:
+            return result[0] if isinstance(result, (tuple, list)) else result.get('id')
+    except:
+        pass
+    return None
+
+
 def _sync_table_push(local_conn, cloud_conn, table_name):
-    """Push data lokal → cloud (INSERT OR UPDATE)."""
+    """Push data lokal → cloud dengan natural key dedup."""
     local_cur = local_conn.cursor(dictionary=True)
-    cloud_cur = cloud_conn.cursor()
+    cloud_cur = cloud_conn.cursor(dictionary=True)
     
     # Ambil kolom dari cloud
     cloud_cur.execute(f'DESCRIBE {table_name}')
     cloud_cols = [row[0] for row in cloud_cur.fetchall()]
-    
     if not cloud_cols:
+        local_cur.close(); cloud_cur.close()
         return 0
     
     # Ambil semua data lokal
     local_cur.execute(f'SELECT * FROM {table_name}')
     rows = local_cur.fetchall()
     local_cur.close()
-    
     if not rows:
+        cloud_cur.close()
         return 0
     
     # Filter kolom yang ada di kedua sisi
     common_cols = [c for c in cloud_cols if c in rows[0]]
     if not common_cols:
+        cloud_cur.close()
         return 0
     
-    cols_str = ', '.join([f'`{c}`' for c in common_cols])
-    placeholders = ', '.join(['%s'] * len(common_cols))
-    
-    # Build UPDATE clause (skip primary key 'id')
-    update_parts = [f'`{c}`=VALUES(`{c}`)' for c in common_cols if c != 'id']
-    update_clause = ', '.join(update_parts) if update_parts else ''
-    
-    sql = f'INSERT INTO `{table_name}` ({cols_str}) VALUES ({placeholders})'
-    if update_clause:
-        sql += f' ON DUPLICATE KEY UPDATE {update_clause}'
+    key_cols = _get_natural_key_columns(table_name)
+    non_key_cols = [c for c in common_cols if c not in (key_cols or []) and c != 'id']
     
     count = 0
     for row in rows:
         try:
-            vals = [row.get(c) for c in common_cols]
-            # Handle datetime objects
-            for i, v in enumerate(vals):
-                if hasattr(v, 'isoformat'):
-                    vals[i] = v.isoformat()
-            cloud_cur.execute(sql, vals)
+            # Cek apakah record sudah ada
+            existing_id = _record_exists(cloud_cur, table_name, key_cols, row)
+            
+            if existing_id is not None and non_key_cols:
+                # UPDATE: record sudah ada
+                update_sql = ', '.join([f'`{c}` = %s' for c in non_key_cols])
+                vals = [row.get(c) for c in non_key_cols]
+                for i, v in enumerate(vals):
+                    if hasattr(v, 'isoformat'):
+                        vals[i] = v.isoformat()
+                vals.append(existing_id)
+                cloud_cur.execute(f'UPDATE `{table_name}` SET {update_sql} WHERE id = %s', vals)
+            else:
+                # INSERT: record belum ada
+                cols_to_insert = [c for c in common_cols if c != 'id']
+                cols_str = ', '.join([f'`{c}`' for c in cols_to_insert])
+                placeholders = ', '.join(['%s'] * len(cols_to_insert))
+                vals = [row.get(c) for c in cols_to_insert]
+                for i, v in enumerate(vals):
+                    if hasattr(v, 'isoformat'):
+                        vals[i] = v.isoformat()
+                cloud_cur.execute(f'INSERT INTO `{table_name}` ({cols_str}) VALUES ({placeholders})', vals)
             count += 1
         except Exception as e:
-            # Skip row on error, continue
             pass
     
     cloud_conn.commit()
@@ -3714,15 +3758,15 @@ def _sync_table_push(local_conn, cloud_conn, table_name):
 
 
 def _sync_table_pull(local_conn, cloud_conn, table_name):
-    """Pull data cloud → lokal (INSERT OR UPDATE)."""
+    """Pull data cloud → lokal dengan natural key dedup."""
     cloud_cur = cloud_conn.cursor(dictionary=True)
-    local_cur = local_conn.cursor()
+    local_cur = local_conn.cursor(dictionary=True)
     
     # Ambil kolom dari local
     local_cur.execute(f'DESCRIBE {table_name}')
     local_cols = [row[0] for row in local_cur.fetchall()]
-    
     if not local_cols:
+        cloud_cur.close(); local_cur.close()
         return 0
     
     # Ambil semua data cloud
@@ -3730,39 +3774,49 @@ def _sync_table_pull(local_conn, cloud_conn, table_name):
         cloud_cur.execute(f'SELECT * FROM {table_name}')
         rows = cloud_cur.fetchall()
     except:
-        cloud_cur.close()
-        local_cur.close()
+        cloud_cur.close(); local_cur.close()
         return 0
     cloud_cur.close()
-    
     if not rows:
+        local_cur.close()
         return 0
     
     # Filter kolom yang ada di kedua sisi
     common_cols = [c for c in local_cols if c in rows[0]]
     if not common_cols:
+        local_cur.close()
         return 0
     
-    cols_str = ', '.join([f'`{c}`' for c in common_cols])
-    placeholders = ', '.join(['%s'] * len(common_cols))
-    
-    update_parts = [f'`{c}`=VALUES(`{c}`)' for c in common_cols if c != 'id']
-    update_clause = ', '.join(update_parts) if update_parts else ''
-    
-    sql = f'INSERT INTO `{table_name}` ({cols_str}) VALUES ({placeholders})'
-    if update_clause:
-        sql += f' ON DUPLICATE KEY UPDATE {update_clause}'
+    key_cols = _get_natural_key_columns(table_name)
+    non_key_cols = [c for c in common_cols if c not in (key_cols or []) and c != 'id']
     
     count = 0
     for row in rows:
         try:
-            vals = [row.get(c) for c in common_cols]
-            for i, v in enumerate(vals):
-                if hasattr(v, 'isoformat'):
-                    vals[i] = v.isoformat()
-            local_cur.execute(sql, vals)
+            # Cek apakah record sudah ada
+            existing_id = _record_exists(local_cur, table_name, key_cols, row)
+            
+            if existing_id is not None and non_key_cols:
+                # UPDATE: record sudah ada
+                update_sql = ', '.join([f'`{c}` = %s' for c in non_key_cols])
+                vals = [row.get(c) for c in non_key_cols]
+                for i, v in enumerate(vals):
+                    if hasattr(v, 'isoformat'):
+                        vals[i] = v.isoformat()
+                vals.append(existing_id)
+                local_cur.execute(f'UPDATE `{table_name}` SET {update_sql} WHERE id = %s', vals)
+            else:
+                # INSERT: record belum ada
+                cols_to_insert = [c for c in common_cols if c != 'id']
+                cols_str = ', '.join([f'`{c}`' for c in cols_to_insert])
+                placeholders = ', '.join(['%s'] * len(cols_to_insert))
+                vals = [row.get(c) for c in cols_to_insert]
+                for i, v in enumerate(vals):
+                    if hasattr(v, 'isoformat'):
+                        vals[i] = v.isoformat()
+                local_cur.execute(f'INSERT INTO `{table_name}` ({cols_str}) VALUES ({placeholders})', vals)
             count += 1
-        except:
+        except Exception as e:
             pass
     
     local_conn.commit()
