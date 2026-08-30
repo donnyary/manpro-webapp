@@ -2788,33 +2788,29 @@ def gantt_chart(proyek_id):
     cursor.execute("SELECT * FROM master_wbs WHERE proyek_id = %s ORDER BY id ASC", (proyek_id,))
     wbs_data = cursor.fetchall()
 
-    # 3. Setup Variabel Kalkulasi Time Schedule
-    # Hitung minggu_total dari WBS terpanjang
-    max_akhir = 0
-    for item in wbs_data:
-        mm = int(item.get('minggu_mulai', 1))
-        dm = int(item.get('durasi_minggu', 4))
-        akhir = mm + dm - 1
-        if akhir > max_akhir:
-            max_akhir = akhir
-    minggu_total = max(max_akhir, 12)  # minimal 12 minggu
-    rencana_mingguan = [0] * minggu_total
+    # 3. Setup Variabel Kalkulasi Time Schedule (BULANAN M1-M12)
+    bulan_total = 12  # M1 sampai M12
+    rencana_bulanan = [0] * bulan_total
 
-    # Baca jadwal dari database (minggu_mulai & durasi_minggu)
+    # Baca jadwal dari database (bulan_mulai & bulan_selesai)
     for item in wbs_data:
         bobot = float(item.get('bobot_persen', 0))
-        start_wk = int(item.get('minggu_mulai', 1))
-        duration_minggu = int(item.get('durasi_minggu', 4))
+        bm = int(item.get('bulan_mulai', 1))
+        bs = int(item.get('bulan_selesai', bm))
+        if bs < bm:
+            bs = bm
+        durasi_bulan = bs - bm + 1
 
-        item['start_week'] = start_wk
-        item['duration'] = duration_minggu
+        item['start_month'] = bm
+        item['end_month'] = bs
+        item['duration_bulan'] = durasi_bulan
 
-        # Hitung bobot mingguan yang didistribusikan
-        if duration_minggu > 0:
-            weekly_val = bobot / duration_minggu
-            for w in range(start_wk, start_wk + duration_minggu):
-                if 1 <= w <= minggu_total:
-                    rencana_mingguan[w-1] += weekly_val
+        # Hitung bobot bulanan yang didistribusikan
+        if durasi_bulan > 0:
+            monthly_val = bobot / durasi_bulan
+            for m in range(bm, bs + 1):
+                if 1 <= m <= bulan_total:
+                    rencana_bulanan[m-1] += monthly_val
 
     # 4. Hitung Rencana Kumulatif (Kurva S Rencana)
     rencana_kumulatif = []
