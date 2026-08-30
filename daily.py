@@ -3852,6 +3852,9 @@ def set_sync_interval():
 def trigger_auto_sync():
     """Trigger manual sync via background thread."""
     if not validate_csrf(): return redirect(url_for('sync_data'))
+    if is_cloud_environment():
+        flash('Auto-sync hanya bisa dijalankan dari komputer lokal!', 'warning')
+        return redirect(url_for('sync_data'))
     direction = request.form.get('direction', 'merge')
     t = threading.Thread(target=_run_auto_sync, args=(direction,), daemon=True)
     t.start()
