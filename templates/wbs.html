@@ -45,10 +45,14 @@
                         <td>{{ w.nama_pekerjaan }}</td>
                         <td>{{ w.bobot_persen }}%</td>
                         <td class="text-center">
+                            {% if session.get('can_edit', True) %}
                             <button class="btn btn-sm btn-outline-warning rounded-pill px-2 me-1" data-bs-toggle="modal" data-bs-target="#modalEditWbs{{ w.id }}" title="Edit">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
+                            {% endif %}
+                            {% if session.get('can_delete', True) %}
                             <a href="/delete_wbs/{{ w.id }}/{{ proyek.id }}" class="btn btn-sm btn-outline-danger rounded-pill px-2" onclick="return confirm('Hapus item WBS ini?')" title="Hapus"><i class="fa-solid fa-trash"></i></a>
+                            {% endif %}
                         </td>
                     </tr>
                     <!-- Modal Edit WBS (Identik dengan Modal Tambah WBS) -->
