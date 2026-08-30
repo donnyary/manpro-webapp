@@ -1684,8 +1684,50 @@ def edit_laporan(id, proyek_id):
     pengesahan = cursor.fetchone()
     
     # Ambil data WBS untuk dropdown jenis pekerjaan
-    cursor.execute("SELECT nama_pekerjaan FROM master_wbs WHERE proyek_id = %s ORDER BY kode_wbs ASC", (proyek_id,))
-    wbs_list = [r['nama_pekerjaan'] for r in cursor.fetchall()]
+    cursor.execute("SELECT * FROM master_wbs WHERE proyek_id = %s ORDER BY kode_wbs ASC", (proyek_id,))
+    wbs_raw = cursor.fetchall()
+    wbs_list = [r['nama_pekerjaan'] for r in wbs_raw]
+    
+    # Hitung target kumulatif M1-M12 dari WBS schedule
+    minggu_total = 12
+    schedule_map = {
+        '1.1': (1, 2), '1.2': (2, 3), '1.3': (3, 6), '1.4': (4, 5),
+        '1.5': (7, 3), '1.6': (8, 3), '1.7': (9, 3), '1.8': (10, 3),
+        '1.9': (8, 4), '1.10': (6, 6),
+        '2.1': (1, 3), '2.2': (4, 4), '2.3': (8, 3), '2.4': (11, 2),
+        '3.1': (1, 4), '3.2': (5, 3), '3.3': (8, 3), '3.4': (11, 2)
+    }
+    wbs_kumulatif = {}
+    for item in wbs_raw:
+        kode = item.get('kode_wbs', '')
+        bobot = float(item.get('bobot_persen', 0))
+        nama = item['nama_pekerjaan']
+        minggu_vals = [0.0] * minggu_total
+        if kode in schedule_map:
+            start_wk, dur = schedule_map[kode]
+            weekly = bobot / dur
+            for w in range(start_wk, start_wk + dur):
+                if 1 <= w <= minggu_total:
+                    minggu_vals[w-1] += weekly
+        kum = []
+        cum = 0
+        for v in minggu_vals:
+            cum += v
+            kum.append(round(cum, 2))
+        if kum and kum[-1] > 99:
+            kum[-1] = 100.0
+        wbs_kumulatif[nama] = kum
+    
+    bulan_map = {1: 3, 2: 7, 3: 11}
+    wbs_target_bulanan = {}
+    for nama, kum in wbs_kumulatif.items():
+        targets = {}
+        for bln, wk_idx in bulan_map.items():
+            if wk_idx < len(kum):
+                targets[f'M{bln}'] = kum[wk_idx]
+            else:
+                targets[f'M{bln}'] = kum[-1] if kum else 0
+        wbs_target_bulanan[nama] = targets
     
     conn.close()
     
@@ -1694,7 +1736,7 @@ def edit_laporan(id, proyek_id):
         return redirect(url_for('workspace_history', proyek_id=proyek_id))
     
     g.wbs_list_cache = wbs_list
-    return render_template('edit_laporan.html', proyek=proyek, laporan=laporan, pekerja=pekerja, peralatan=peralatan, material=material, pekerjaan=pekerjaan, kondisi=kondisi, pengesahan=pengesahan, wbs_list=wbs_list)
+    return render_template('edit_laporan.html', proyek=proyek, laporan=laporan, pekerja=pekerja, peralatan=peralatan, material=material, pekerjaan=pekerjaan, kondisi=kondisi, pengesahan=pengesahan, wbs_list=wbs_list, wbs_target_bulanan=wbs_target_bulanan)
 
 @app.route('/update_laporan', methods=['POST'])
 @login_required
