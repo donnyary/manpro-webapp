@@ -158,7 +158,7 @@ def get_db_connection():
     db_port = int(os.environ.get('MYSQLPORT', '') or os.environ.get('DB_PORT', '3306') or '3306')
     db_user = os.environ.get('MYSQLUSER', '') or os.environ.get('DB_USER', 'root')
     db_password = os.environ.get('MYSQLPASSWORD', '') or os.environ.get('DB_PASSWORD', '')
-    db_name = os.environ.get('MYSQLDATABASE', '') or os.environ.get('DB_NAME', 'railway')
+    db_name = os.environ.get('MYSQLDATABASE', '') or os.environ.get('DB_NAME', 'db_proyek')
     
     if database_url:
         try:
@@ -431,7 +431,7 @@ CREATE TABLE IF NOT EXISTS `user_permissions` (
         db_port = int(os.environ.get('MYSQLPORT', '') or os.environ.get('DB_PORT', '3306') or '3306')
         db_user = os.environ.get('MYSQLUSER', '') or os.environ.get('DB_USER', 'root')
         db_password = os.environ.get('MYSQLPASSWORD', '') or os.environ.get('DB_PASSWORD', '')
-        db_name = os.environ.get('MYSQLDATABASE', '') or os.environ.get('DB_NAME', 'railway')
+        db_name = os.environ.get('MYSQLDATABASE', '') or os.environ.get('DB_NAME', 'db_proyek')
         
         # Parse dari DATABASE_URL jika ada
         database_url = os.environ.get('DATABASE_URL', '') or os.environ.get('MYSQL_URL', '') or os.environ.get('MYSQLURL', '')
