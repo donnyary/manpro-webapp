@@ -1492,10 +1492,46 @@ def workspace_history(proyek_id):
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM master_proyek WHERE id = %s", (proyek_id,))
     proyek = cursor.fetchone()
-    cursor.execute("SELECT * FROM laporan_harian WHERE proyek_id = %s ORDER BY tanggal_laporan DESC", (proyek_id,))
+    
+    # Ambil filter params
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    jenis_filter = request.args.get('jenis_pekerjaan', '')
+    
+    # Build query dengan filter
+    sql = """
+        SELECT DISTINCT lh.* FROM laporan_harian lh
+        LEFT JOIN pekerjaan p ON lh.id = p.laporan_id
+        WHERE lh.proyek_id = %s
+    """
+    params = [proyek_id]
+    
+    if date_from:
+        sql += " AND lh.tanggal_laporan >= %s"
+        params.append(date_from)
+    if date_to:
+        sql += " AND lh.tanggal_laporan <= %s"
+        params.append(date_to)
+    if jenis_filter:
+        sql += " AND p.jenis_pekerjaan = %s"
+        params.append(jenis_filter)
+    
+    sql += " ORDER BY lh.tanggal_laporan DESC"
+    cursor.execute(sql, params)
     laporan = cursor.fetchall()
+    
+    # Ambil daftar jenis pekerjaan unik untuk dropdown filter
+    cursor.execute("""
+        SELECT DISTINCT p.jenis_pekerjaan
+        FROM pekerjaan p JOIN laporan_harian lh ON p.laporan_id = lh.id
+        WHERE lh.proyek_id = %s ORDER BY p.jenis_pekerjaan
+    """, (proyek_id,))
+    jenis_list = [r['jenis_pekerjaan'] for r in cursor.fetchall()]
+    
     conn.close()
-    return render_template('daftar_laporan.html', proyek=proyek, laporan=laporan)
+    return render_template('daftar_laporan.html', proyek=proyek, laporan=laporan,
+                           jenis_list=jenis_list, date_from=date_from, date_to=date_to,
+                           jenis_filter=jenis_filter)
 
 @app.route('/input/<int:proyek_id>')
 @login_required
