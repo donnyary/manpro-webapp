@@ -523,6 +523,16 @@ CREATE TABLE IF NOT EXISTS `user_permissions` (
                     pass  # Kolom sudah ada
         except:
             pass
+
+        # Tambah kolom bulan_mulai & durasi_bulan di master_wbs jika belum ada
+        try:
+            cursor.execute("ALTER TABLE master_wbs ADD COLUMN bulan_mulai INT DEFAULT 1")
+        except:
+            pass
+        try:
+            cursor.execute("ALTER TABLE master_wbs ADD COLUMN durasi_bulan INT DEFAULT 1")
+        except:
+            pass
         
         cursor.close()
         conn.close()
