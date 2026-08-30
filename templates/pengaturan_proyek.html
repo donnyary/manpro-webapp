@@ -73,12 +73,16 @@
                         <td>{{ loop.index }}</td>
                         <td class="fw-bold text-dark">{{ k.nama_kategori }}</td>
                         <td class="text-center">
+                            {% if session.get('can_edit', True) %}
                             <button class="btn btn-sm btn-warning text-white rounded-2 px-2 py-1 me-1" data-bs-toggle="modal" data-bs-target="#modalEditKat{{ k.id }}" title="Edit">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
+                            {% endif %}
+                            {% if session.get('can_delete', True) %}
                             <a href="/delete_kategori_budget/{{ k.id }}/{{ proyek.id }}" class="btn btn-sm btn-danger rounded-2 px-2 py-1" onclick="return confirm('Hapus kategori biaya ini?')" title="Hapus">
                                 <i class="fa-solid fa-trash"></i>
                             </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
