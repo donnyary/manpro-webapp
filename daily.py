@@ -1520,6 +1520,15 @@ def workspace_history(proyek_id):
     cursor.execute(sql, params)
     laporan = cursor.fetchall()
     
+    # Ambil jenis pekerjaan untuk setiap laporan
+    for l in laporan:
+        cursor.execute("""
+            SELECT GROUP_CONCAT(DISTINCT jenis_pekerjaan SEPARATOR ', ') as jenis
+            FROM pekerjaan WHERE laporan_id = %s
+        """, (l['id'],))
+        row = cursor.fetchone()
+        l['jenis_pekerjaan'] = row['jenis'] if row and row['jenis'] else '-'
+    
     # Ambil daftar jenis pekerjaan unik untuk dropdown filter
     cursor.execute("""
         SELECT DISTINCT p.jenis_pekerjaan
