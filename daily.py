@@ -3568,30 +3568,7 @@ def get_sync_state():
 app.jinja_env.globals['get_sync_state'] = get_sync_state
 
 
-def get_wbs_select_html(name, current_value=''):
-    """Generate HTML select untuk WBS pekerjaan."""
-    # Ambil WBS list dari request context
-    from flask import g
-    wbs_list = getattr(g, 'wbs_list_cache', None)
-    if wbs_list is None:
-        wbs_list = []
-    
-    html = f'<select class="form-select form-select-sm" name="{name}" required onchange="toggleCustomInput(this)">'
-    html += '<option value="" disabled>-- Pilih Pekerjaan --</option>'
-    for w in wbs_list:
-        selected = ' selected' if w == current_value else ''
-        w_escaped = w.replace("'", "&#39;")
-        html += f'<option value="{w_escaped}"{selected}>{w_escaped}</option>'
-    
-    is_custom = current_value and current_value not in wbs_list
-    html += f'<option value="__LAINNYA__"{" selected" if is_custom else ""}>Lainnya (ketik sendiri)</option>'
-    html += '</select>'
-    
-    custom_val = current_value if is_custom else ''
-    html += f'<input type="text" class="form-control form-control-sm mt-1{"" if is_custom else " d-none"}" name="{name.replace("[]", "_custom[]")}" placeholder="Ketik jenis pekerjaan..." value="{custom_val}">'
-    return html
-
-app.jinja_env.globals['getWbsSelectHtml'] = get_wbs_select_html
+app.jinja_env.globals['wbs_list_global'] = []
 
 
 def is_cloud_environment():
