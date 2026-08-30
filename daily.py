@@ -2800,16 +2800,11 @@ def gantt_chart(proyek_id):
     minggu_total = max(max_akhir * 4, 12)  # minimal 12 minggu
     rencana_mingguan = [0] * minggu_total
 
-    # Baca jadwal dari database (bulan_mulai & durasi_bulan)
-    # 1 bulan = 4 minggu
+    # Baca jadwal dari database (minggu_mulai & durasi_minggu)
     for item in wbs_data:
         bobot = float(item.get('bobot_persen', 0))
-        bulan_mulai = int(item.get('bulan_mulai', 1))
-        durasi_bulan = int(item.get('durasi_bulan', 1))
-
-        # Konversi bulan ke minggu
-        start_wk = (bulan_mulai - 1) * 4 + 1  # M1=minggu 1, M2=minggu 5, M3=minggu 9
-        duration_minggu = durasi_bulan * 4
+        start_wk = int(item.get('minggu_mulai', 1))
+        duration_minggu = int(item.get('durasi_minggu', 4))
 
         item['start_week'] = start_wk
         item['duration'] = duration_minggu
