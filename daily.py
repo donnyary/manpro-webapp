@@ -524,18 +524,18 @@ CREATE TABLE IF NOT EXISTS `user_permissions` (
         except:
             pass
 
-        # Tambah kolom minggu_mulai & durasi_minggu di master_wbs jika belum ada
+        # Tambah kolom bulan_mulai & bulan_selesai di master_wbs jika belum ada
         try:
-            cursor.execute("ALTER TABLE master_wbs ADD COLUMN minggu_mulai INT DEFAULT 1")
+            cursor.execute("ALTER TABLE master_wbs ADD COLUMN bulan_mulai INT DEFAULT 1")
         except:
             pass
         try:
-            cursor.execute("ALTER TABLE master_wbs ADD COLUMN durasi_minggu INT DEFAULT 4")
+            cursor.execute("ALTER TABLE master_wbs ADD COLUMN bulan_selesai INT DEFAULT 1")
         except:
             pass
-        # Backward compat: copy data dari kolom lama jika ada
+        # Backward compat: copy dari kolom lama
         try:
-            cursor.execute("UPDATE master_wbs SET minggu_mulai = (bulan_mulai - 1) * 4 + 1, durasi_minggu = durasi_bulan * 4 WHERE minggu_mulai IS NULL OR minggu_mulai = 0")
+            cursor.execute("UPDATE master_wbs SET bulan_selesai = bulan_mulai WHERE bulan_selesai IS NULL OR bulan_selesai = 0")
         except:
             pass
         
