@@ -2834,6 +2834,36 @@ def gantt_chart(proyek_id):
     cursor.execute(sql_kurva, (proyek_id,))
     data_harian = cursor.fetchall()
     
+    # 5b. Ambil data M1-M6 aktual dari laporan terakhir per jenis pekerjaan
+    sql_m = """
+        SELECT p.jenis_pekerjaan, p.m1, p.m2, p.m3, p.m4, p.m5, p.m6
+        FROM pekerjaan p
+        INNER JOIN (
+            SELECT MAX(p2.id) as max_id FROM pekerjaan p2
+            JOIN laporan_harian l2 ON p2.laporan_id = l2.id
+            WHERE l2.proyek_id = %s
+            GROUP BY p2.jenis_pekerjaan
+        ) latest ON p.id = latest.max_id
+    """
+    cursor.execute(sql_m, (proyek_id,))
+    m_data = {}
+    for r in cursor.fetchall():
+        jp = r['jenis_pekerjaan']
+        m_data[jp] = {
+            'm1': r['m1'] or '', 'm2': r['m2'] or '', 'm3': r['m3'] or '',
+            'm4': r['m4'] or '', 'm5': r['m5'] or '', 'm6': r['m6'] or ''
+        }
+    
+    # Update wbs_data dengan nilai M aktual
+    for item in wbs_data:
+        jp = item['nama_pekerjaan']
+        if jp in m_data:
+            for k in ['m1','m2','m3','m4','m5','m6']:
+                item[k] = m_data[jp][k]
+        else:
+            for k in ['m1','m2','m3','m4','m5','m6']:
+                item[k] = ''
+    
     labels = [f"Minggu {i+1}" for i in range(minggu_total)]
     
     # Proses realisasi disesuaikan dengan indeks minggu
