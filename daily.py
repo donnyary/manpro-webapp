@@ -3542,6 +3542,319 @@ def delete_pagu(proyek_id):
     flash('Total Pagu Kontrak Berhasil Dihapus (Di-reset ke 0)!', 'warning')
     return redirect(url_for('budget_view', proyek_id=proyek_id))
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# AUTO-SYNC: Background thread untuk sinkronisasi otomatis local ↔ TiDB Cloud
+# ═══════════════════════════════════════════════════════════════════════════
+import threading
+import time
+
+# Global sync state
+_sync_state = {
+    'last_sync': None,
+    'status': 'idle',          # idle / syncing / error
+    'last_direction': '',      # push / pull / merge
+    'last_rows_synced': 0,
+    'last_error': '',
+    'sync_count': 0,
+    'auto_sync_enabled': True,
+    'interval_seconds': 300,   # 5 menit
+}
+
+def get_sync_state():
+    """Return copy of sync state untuk ditampilkan di UI."""
+    return dict(_sync_state)
+
+app.jinja_env.globals['get_sync_state'] = get_sync_state
+
+
+def _get_cloud_conn():
+    """Koneksi ke TiDB Cloud (hardcoded untuk local sync)."""
+    try:
+        return mysql.connector.connect(
+            host='gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
+            port=4000,
+            user='vqpHmv4RwShLMQa.root',
+            password='R2HE6uHS62HSOtMS',
+            database='db_proyek',
+            ssl_disabled=False,
+            ssl_verify_cert=False,
+            ssl_verify_identity=False,
+            connect_timeout=10
+        )
+    except Exception as e:
+        print(f'[AUTO-SYNC] Cloud connection error: {e}')
+        return None
+
+
+def _get_local_conn():
+    """Koneksi ke MySQL lokal."""
+    try:
+        return mysql.connector.connect(
+            host='127.0.0.1', port=3306, user='root',
+            password='', database='db_proyek',
+            connect_timeout=5
+        )
+    except Exception as e:
+        print(f'[AUTO-SYNC] Local connection error: {e}')
+        return None
+
+
+def _get_table_columns(cursor, table_name):
+    """Ambil nama kolom dari tabel."""
+    cursor.execute(f'DESCRIBE {table_name}')
+    return [row[0] for row in cursor.fetchall()]
+
+
+def _sync_table_push(local_conn, cloud_conn, table_name):
+    """Push data lokal → cloud (INSERT OR UPDATE)."""
+    local_cur = local_conn.cursor(dictionary=True)
+    cloud_cur = cloud_conn.cursor()
+    
+    # Ambil kolom dari cloud
+    cloud_cur.execute(f'DESCRIBE {table_name}')
+    cloud_cols = [row[0] for row in cloud_cur.fetchall()]
+    
+    if not cloud_cols:
+        return 0
+    
+    # Ambil semua data lokal
+    local_cur.execute(f'SELECT * FROM {table_name}')
+    rows = local_cur.fetchall()
+    local_cur.close()
+    
+    if not rows:
+        return 0
+    
+    # Filter kolom yang ada di kedua sisi
+    common_cols = [c for c in cloud_cols if c in rows[0]]
+    if not common_cols:
+        return 0
+    
+    cols_str = ', '.join([f'`{c}`' for c in common_cols])
+    placeholders = ', '.join(['%s'] * len(common_cols))
+    
+    # Build UPDATE clause (skip primary key 'id')
+    update_parts = [f'`{c}`=VALUES(`{c}`)' for c in common_cols if c != 'id']
+    update_clause = ', '.join(update_parts) if update_parts else ''
+    
+    sql = f'INSERT INTO `{table_name}` ({cols_str}) VALUES ({placeholders})'
+    if update_clause:
+        sql += f' ON DUPLICATE KEY UPDATE {update_clause}'
+    
+    count = 0
+    for row in rows:
+        try:
+            vals = [row.get(c) for c in common_cols]
+            # Handle datetime objects
+            for i, v in enumerate(vals):
+                if hasattr(v, 'isoformat'):
+                    vals[i] = v.isoformat()
+            cloud_cur.execute(sql, vals)
+            count += 1
+        except Exception as e:
+            # Skip row on error, continue
+            pass
+    
+    cloud_conn.commit()
+    cloud_cur.close()
+    return count
+
+
+def _sync_table_pull(local_conn, cloud_conn, table_name):
+    """Pull data cloud → lokal (INSERT OR UPDATE)."""
+    cloud_cur = cloud_conn.cursor(dictionary=True)
+    local_cur = local_conn.cursor()
+    
+    # Ambil kolom dari local
+    local_cur.execute(f'DESCRIBE {table_name}')
+    local_cols = [row[0] for row in local_cur.fetchall()]
+    
+    if not local_cols:
+        return 0
+    
+    # Ambil semua data cloud
+    try:
+        cloud_cur.execute(f'SELECT * FROM {table_name}')
+        rows = cloud_cur.fetchall()
+    except:
+        cloud_cur.close()
+        local_cur.close()
+        return 0
+    cloud_cur.close()
+    
+    if not rows:
+        return 0
+    
+    # Filter kolom yang ada di kedua sisi
+    common_cols = [c for c in local_cols if c in rows[0]]
+    if not common_cols:
+        return 0
+    
+    cols_str = ', '.join([f'`{c}`' for c in common_cols])
+    placeholders = ', '.join(['%s'] * len(common_cols))
+    
+    update_parts = [f'`{c}`=VALUES(`{c}`)' for c in common_cols if c != 'id']
+    update_clause = ', '.join(update_parts) if update_parts else ''
+    
+    sql = f'INSERT INTO `{table_name}` ({cols_str}) VALUES ({placeholders})'
+    if update_clause:
+        sql += f' ON DUPLICATE KEY UPDATE {update_clause}'
+    
+    count = 0
+    for row in rows:
+        try:
+            vals = [row.get(c) for c in common_cols]
+            for i, v in enumerate(vals):
+                if hasattr(v, 'isoformat'):
+                    vals[i] = v.isoformat()
+            local_cur.execute(sql, vals)
+            count += 1
+        except:
+            pass
+    
+    local_conn.commit()
+    local_cur.close()
+    return count
+
+
+def _run_auto_sync(direction='merge'):
+    """Jalankan sync otomatis di background thread."""
+    global _sync_state
+    
+    if _sync_state['status'] == 'syncing':
+        print('[AUTO-SYNC] Already syncing, skip.')
+        return
+    
+    _sync_state['status'] = 'syncing'
+    _sync_state['last_error'] = ''
+    total_rows = 0
+    
+    try:
+        local_conn = _get_local_conn()
+        cloud_conn = _get_cloud_conn()
+        
+        if not local_conn:
+            _sync_state['status'] = 'error'
+            _sync_state['last_error'] = 'MySQL lokal tidak terhubung'
+            return
+        if not cloud_conn:
+            _sync_state['status'] = 'error'
+            _sync_state['last_error'] = 'TiDB Cloud tidak terhubung'
+            return
+        
+        print(f'[AUTO-SYNC] Starting {direction}...')
+        
+        # Tabel yang di-sync (dalam urutan foreign key)
+        tables = [
+            'users', 'master_proyek', 'master_kategori_biaya',
+            'laporan_harian', 'tenaga_kerja', 'peralatan', 'material',
+            'pekerjaan', 'kondisi_lapangan', 'pengesahan',
+            'master_wbs', 'kategori_budget', 'master_budget',
+            'menu_permissions', 'settings', 'user_projects',
+            'user_permissions', 'kategori_biaya'
+        ]
+        
+        for table in tables:
+            try:
+                if direction in ('push', 'merge'):
+                    n = _sync_table_push(local_conn, cloud_conn, table)
+                    total_rows += n
+                    if n > 0:
+                        print(f'  [PUSH] {table}: {n} rows')
+                if direction in ('pull', 'merge'):
+                    n = _sync_table_pull(local_conn, cloud_conn, table)
+                    total_rows += n
+                    if n > 0:
+                        print(f'  [PULL] {table}: {n} rows')
+            except Exception as e:
+                print(f'  [SKIP] {table}: {e}')
+        
+        local_conn.close()
+        cloud_conn.close()
+        
+        _sync_state['status'] = 'idle'
+        _sync_state['last_sync'] = time.strftime('%Y-%m-%d %H:%M:%S')
+        _sync_state['last_direction'] = direction
+        _sync_state['last_rows_synced'] = total_rows
+        _sync_state['sync_count'] += 1
+        
+        print(f'[AUTO-SYNC] Done! {total_rows} rows synced ({direction})')
+        
+    except Exception as e:
+        _sync_state['status'] = 'error'
+        _sync_state['last_error'] = str(e)
+        print(f'[AUTO-SYNC] ERROR: {e}')
+
+
+def _auto_sync_thread():
+    """Background thread yang jalan terus untuk auto-sync."""
+    print('[AUTO-SYNC] Background thread started (interval: 5 min)')
+    
+    # Tunggu 30 detik setelah startup sebelum sync pertama
+    time.sleep(30)
+    
+    while True:
+        try:
+            if _sync_state['auto_sync_enabled']:
+                _run_auto_sync('merge')
+            else:
+                print('[AUTO-SYNC] Auto-sync disabled, sleeping...')
+        except Exception as e:
+            print(f'[AUTO-SYNC] Thread error: {e}')
+        
+        time.sleep(_sync_state['interval_seconds'])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Routes untuk Auto-Sync Management
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.route('/sync/auto/toggle', methods=['POST'])
+@role_required('admin')
+def toggle_auto_sync():
+    """Toggle auto-sync on/off."""
+    if not validate_csrf(): return redirect(url_for('sync_data'))
+    _sync_state['auto_sync_enabled'] = not _sync_state['auto_sync_enabled']
+    status = 'AKTIF ✅' if _sync_state['auto_sync_enabled'] else 'NONAKTIF ❌'
+    flash(f'Auto-Sync sekarang: {status}', 'info')
+    return redirect(url_for('sync_data'))
+
+
+@app.route('/sync/auto/interval', methods=['POST'])
+@role_required('admin')
+def set_sync_interval():
+    """Set interval auto-sync."""
+    if not validate_csrf(): return redirect(url_for('sync_data'))
+    try:
+        minutes = int(request.form.get('interval', 5))
+        minutes = max(1, min(60, minutes))  # 1-60 menit
+        _sync_state['interval_seconds'] = minutes * 60
+        flash(f'Interval auto-sync diatur ke {minutes} menit', 'success')
+    except:
+        flash('Interval tidak valid!', 'danger')
+    return redirect(url_for('sync_data'))
+
+
+@app.route('/sync/auto/now', methods=['POST'])
+@role_required('admin')
+def trigger_auto_sync():
+    """Trigger manual sync via background thread."""
+    if not validate_csrf(): return redirect(url_for('sync_data'))
+    direction = request.form.get('direction', 'merge')
+    t = threading.Thread(target=_run_auto_sync, args=(direction,), daemon=True)
+    t.start()
+    flash(f'Sync {direction} dimulai di background... Cek status dalam beberapa detik.', 'info')
+    return redirect(url_for('sync_data'))
+
+
 if __name__ == '__main__':
+    # Start auto-sync background thread
+    if not os.environ.get('DATABASE_URL') and not os.environ.get('MYSQLURL'):
+        # Hanya jalan di lokal (bukan di Railway/TiDB Cloud)
+        sync_thread = threading.Thread(target=_auto_sync_thread, daemon=True)
+        sync_thread.start()
+        print('[AUTO-SYNC] Background sync thread started!')
+    
     port = int(os.environ.get('PORT', 5050))
     app.run(debug=False, host='0.0.0.0', port=port)
