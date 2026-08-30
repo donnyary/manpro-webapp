@@ -2792,12 +2792,12 @@ def gantt_chart(proyek_id):
     # Hitung minggu_total dari WBS terpanjang
     max_akhir = 0
     for item in wbs_data:
-        bm = int(item.get('bulan_mulai', 1))
-        db = int(item.get('durasi_bulan', 1))
-        akhir = bm + db - 1
+        mm = int(item.get('minggu_mulai', 1))
+        dm = int(item.get('durasi_minggu', 4))
+        akhir = mm + dm - 1
         if akhir > max_akhir:
             max_akhir = akhir
-    minggu_total = max(max_akhir * 4, 12)  # minimal 12 minggu
+    minggu_total = max(max_akhir, 12)  # minimal 12 minggu
     rencana_mingguan = [0] * minggu_total
 
     # Baca jadwal dari database (minggu_mulai & durasi_minggu)
