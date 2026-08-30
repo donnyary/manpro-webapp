@@ -214,7 +214,16 @@
                     <tbody>
                         {% for pk in pekerjaan %}
                         <tr>
-                            <td>{{ wbs_select('jenis_pekerjaan[]', pk.jenis_pekerjaan) }}</td>
+                            <td>
+                                <select class="form-select form-select-sm" name="jenis_pekerjaan[]" required onchange="toggleCustomInput(this)">
+                                    <option value="" disabled>Pilih Pekerjaan</option>
+                                    {% for w in wbs_list %}
+                                    <option value="{{ w }}" {% if w == pk.jenis_pekerjaan %}selected{% endif %}>{{ w }}</option>
+                                    {% endfor %}
+                                    <option value="__LAINNYA__" {% if pk.jenis_pekerjaan and pk.jenis_pekerjaan not in wbs_list %}selected{% endif %}>Lainnya (ketik sendiri)</option>
+                                </select>
+                                <input type="text" class="form-control form-control-sm mt-1 {% if not pk.jenis_pekerjaan or pk.jenis_pekerjaan in wbs_list %}d-none{% endif %}" name="jenis_pekerjaan_custom[]" placeholder="Ketik jenis pekerjaan..." value="{% if pk.jenis_pekerjaan and pk.jenis_pekerjaan not in wbs_list %}{{ pk.jenis_pekerjaan }}{% endif %}">
+                            </td>
                             <td><input type="text" class="form-control form-control-sm" name="lokasi_pekerjaan[]" value="{{ pk.lokasi }}"></td>
                             <td><input type="text" class="form-control form-control-sm" name="vol_harian[]" value="{{ pk.vol_harian }}"></td>
                             <td><input type="text" class="form-control form-control-sm" name="proses_kumulatif[]" value="{{ pk.proses_kumulatif }}"></td>
