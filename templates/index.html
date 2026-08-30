@@ -174,14 +174,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><select class="form-select form-select-sm" name="jenis_pekerjaan[]" required onchange="toggleCustomInput(this)">
-                                <option value="" selected disabled>-- Pilih Pekerjaan --</option>
-                                {% for wbs in wbs_list %}
-                                <option value="{{ wbs }}">{{ wbs }}</option>
-                                {% endfor %}
-                                <option value="__LAINNYA__">Lainnya (ketik sendiri)</option>
-                            </select>
-                            <input type="text" class="form-control form-control-sm mt-1 d-none" name="jenis_pekerjaan_custom[]" placeholder="Ketik jenis pekerjaan..."></td>
+                            <td>{{ wbs_select('jenis_pekerjaan[]') }}</td>
                             <td><input type="text" class="form-control form-control-sm" name="lokasi_pekerjaan[]" placeholder="Zona / Lantai"></td>
                             <td><input type="text" class="form-control form-control-sm" name="vol_harian[]" placeholder="0"></td>
                             <td><input type="text" class="form-control form-control-sm" name="proses_kumulatif[]" placeholder="0%"></td>
