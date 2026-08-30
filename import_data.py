@@ -8,6 +8,9 @@ import mysql.connector
 import sys
 import os
 
+# Fix Windows console encoding
+sys.stdout.reconfigure(encoding='utf-8')
+
 # Koneksi ke MySQL Lokal
 DB_CONFIG = {
     'host': '127.0.0.1',
