@@ -1508,6 +1508,7 @@ def input_laporan(proyek_id):
     cursor.execute("SELECT nama_pekerjaan FROM master_wbs WHERE proyek_id = %s ORDER BY kode_wbs ASC", (proyek_id,))
     wbs_list = [r['nama_pekerjaan'] for r in cursor.fetchall()]
     conn.close()
+    g.wbs_list_cache = wbs_list
     return render_template('index.html', proyek=proyek, wbs_list=wbs_list)
 
 @app.route('/submit', methods=['POST'])
