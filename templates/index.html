@@ -313,7 +313,7 @@ function tambahBarisPekerjaan() {
     let tbody = document.getElementById('tablePekerjaan').getElementsByTagName('tbody')[0];
     let newRow = tbody.insertRow();
     newRow.innerHTML = `
-        <td><input type="text" class="form-control form-control-sm" name="jenis_pekerjaan[]" placeholder="Uraian pekerjaan..." required></td>
+        <td>${getWbsSelectHtml('jenis_pekerjaan[]')}</td>
         <td><input type="text" class="form-control form-control-sm" name="lokasi_pekerjaan[]" placeholder="Lokasi"></td>
         <td><input type="text" class="form-control form-control-sm" name="vol_harian[]" placeholder="0"></td>
         <td><input type="text" class="form-control form-control-sm" name="proses_kumulatif[]" placeholder="0%"></td>
@@ -321,6 +321,9 @@ function tambahBarisPekerjaan() {
         <td><input type="text" class="form-control form-control-sm" name="ket_pekerjaan[]" placeholder="-"></td>
         <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
     `;
+    // Add onchange for custom input toggle
+    let sel = newRow.querySelector('select');
+    sel.addEventListener('change', function(){ toggleCustomInput(this); });
 }
 </script>
 
