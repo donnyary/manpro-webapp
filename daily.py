@@ -323,6 +323,12 @@ CREATE TABLE IF NOT EXISTS `pekerjaan` (
     `proses_kumulatif`   VARCHAR(50) DEFAULT NULL,
     `target_harian`      VARCHAR(50) DEFAULT NULL,
     `keterangan`         VARCHAR(255) DEFAULT NULL,
+    `m1`                 VARCHAR(20) DEFAULT NULL,
+    `m2`                 VARCHAR(20) DEFAULT NULL,
+    `m3`                 VARCHAR(20) DEFAULT NULL,
+    `m4`                 VARCHAR(20) DEFAULT NULL,
+    `m5`                 VARCHAR(20) DEFAULT NULL,
+    `m6`                 VARCHAR(20) DEFAULT NULL,
     FOREIGN KEY (`laporan_id`) REFERENCES `laporan_harian`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
