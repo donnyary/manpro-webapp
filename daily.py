@@ -185,7 +185,16 @@ def get_db_connection():
     else:
         print(f'[DB] Using env vars: host={db_host}, port={db_port}, user={db_user}, db={db_name}')
     
-    print(f'[DB] Connecting to: {db_host}:{db_port}/{db_name} as {db_user}')
+    # Debug: print password length (bukan password-nya untuk keamanan)
+    print(f'[DB] Connecting to: {db_host}:{db_port}/{db_name} as {db_user} (pwd_len={len(db_password)})')
+    
+    # SSL config untuk TiDB Cloud
+    ssl_config = {
+        'ssl_disabled': False,
+        'ssl_ca': None,
+        'ssl_verify_cert': False,
+        'ssl_verify_identity': False
+    }
     
     return mysql.connector.connect(
         host=db_host,
@@ -193,7 +202,7 @@ def get_db_connection():
         user=db_user,
         password=db_password,
         database=db_name,
-        ssl_disabled=False
+        **ssl_config
     )
 
 # ====================
@@ -421,11 +430,12 @@ CREATE TABLE IF NOT EXISTS `active_sessions` (
                 if db_password:
                     db_password = urllib.parse.unquote(db_password)
         
-        print(f'[MIGRATE] Connecting to: {db_host}:{db_port}/{db_name} as {db_user}')
+        print(f'[MIGRATE] Connecting to: {db_host}:{db_port}/{db_name} as {db_user} (pwd_len={len(db_password)})')
         
-        # Koneksi tanpa database dulu
+        # Koneksi tanpa database dulu (SSL config untuk TiDB Cloud)
         conn_no_db = mysql.connector.connect(
-            host=db_host, port=db_port, user=db_user, password=db_password
+            host=db_host, port=db_port, user=db_user, password=db_password,
+            ssl_disabled=False, ssl_verify_cert=False, ssl_verify_identity=False
         )
         cursor_no_db = conn_no_db.cursor()
         
