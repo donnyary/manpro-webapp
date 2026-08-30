@@ -710,7 +710,7 @@ def edit_user_role(user_id):
 # ==========================================
 
 def can_user_access_project(user_id, proyek_id):
-    """Cek apakah user boleh mengakses proyek tertentu. Admin/manager selalu bisa."""
+    """Cek apakah user boleh mengakses proyek tertentu. Admin selalu bisa."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
@@ -718,7 +718,16 @@ def can_user_access_project(user_id, proyek_id):
         # Cek role user
         cursor.execute('SELECT role FROM users WHERE id = %s', (user_id,))
         user = cursor.fetchone()
-        if not user or user['role'] in ('admin', 'manager'):
+        if not user or user['role'] == 'admin':
+            cursor.close(); conn.close()
+            return True
+        
+        # Cek apakah user punya record di user_projects
+        cursor.execute('SELECT COUNT(*) as cnt FROM user_projects WHERE user_id = %s', (user_id,))
+        total_records = cursor.fetchone()['cnt']
+        
+        if total_records == 0:
+            # Belum ada pengaturan akses, izinkan semua proyek
             cursor.close(); conn.close()
             return True
         
