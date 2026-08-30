@@ -1,16 +1,5 @@
 {% extends 'base.html' %}
 
-{% macro wbs_select(name, current_value='') %}
-<select class="form-select form-select-sm" name="{{ name }}" required onchange="toggleCustomInput(this)">
-    <option value="" disabled>Pilih Pekerjaan</option>
-    {% for w in wbs_list %}
-    <option value="{{ w }}" {% if w == current_value %}selected{% endif %}>{{ w }}</option>
-    {% endfor %}
-    <option value="__LAINNYA__" {% if current_value and current_value not in wbs_list %}selected{% endif %}>Lainnya (ketik sendiri)</option>
-</select>
-<input type="text" class="form-control form-control-sm mt-1 {% if not current_value or current_value in wbs_list %}d-none{% endif %}" name="{{ name.replace('[]', '_custom[]') }}" placeholder="Ketik jenis pekerjaan..." value="{% if current_value and current_value not in wbs_list %}{{ current_value }}{% endif %}">
-{% endmacro %}
-
 {% block title %}Edit Laporan Harian - {{ proyek.nama_proyek }}{% endblock %}
 
 {% block content %}
