@@ -2914,6 +2914,7 @@ def gantt_chart(proyek_id):
 @app.route('/wbs/<int:proyek_id>')
 @login_required
 def wbs_view(proyek_id):
+    import math
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM master_proyek WHERE id = %s", (proyek_id,))
@@ -2921,7 +2922,15 @@ def wbs_view(proyek_id):
     cursor.execute("SELECT * FROM master_wbs WHERE proyek_id = %s ORDER BY kode_wbs ASC", (proyek_id,))
     wbs_list = cursor.fetchall()
     conn.close()
-    return render_template('wbs.html', proyek=proyek, wbs_list=wbs_list)
+
+    # Hitung minggu_total dari estimasi tanggal proyek
+    if proyek and proyek.get('tanggal_mulai') and proyek.get('tanggal_selesai'):
+        selisih_hari = (proyek['tanggal_selesai'] - proyek['tanggal_mulai']).days + 1
+        minggu_total = max(math.ceil(selisih_hari / 7), 1)
+    else:
+        minggu_total = 12
+
+    return render_template('wbs.html', proyek=proyek, wbs_list=wbs_list, minggu_total=minggu_total)
 
 @app.route('/add_wbs/<int:proyek_id>', methods=['POST'])
 @login_required
