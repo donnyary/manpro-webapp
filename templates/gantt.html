@@ -38,7 +38,7 @@
                         <th rowspan="2" class="align-middle">Kode</th>
                         <th rowspan="2" class="align-middle text-start">Uraian Pekerjaan</th>
                         <th rowspan="2" class="align-middle">Bobot (%)</th>
-                        <th colspan="{{ bulan_total }}" class="bg-primary bg-opacity-10">Bulan Ke-</th>
+                        <th colspan="{{ bulan_total }}" class="bg-primary bg-opacity-10">Minggu Ke-</th>
                     </tr>
                     <tr>
                         {% for i in range(1, bulan_total + 1) %}
@@ -105,8 +105,8 @@
     <div class="card shadow-sm border-0 rounded-4 p-4 bg-white border-start border-primary border-4">
         <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Kesimpulan & Evaluasi Proyek</h5>
         <ul class="mb-0 text-secondary ps-3" style="line-height: 1.8;">
-            <li><strong>Penjadwalan (Time Schedule):</strong> Distribusi item pekerjaan diselesaikan dalam {{ bulan_total }} Bulan (M1-M{{ bulan_total }}) secara proporsional berdasarkan Bulan Mulai & Bulan Selesai dari WBS.</li>
-            <li><strong>Analisis Kinerja:</strong> Warna biru menunjukkan rencana pekerjaan per bulan. Warna hijau menunjukkan realisasi aktual dari laporan harian.</li>
+            <li><strong>Penjadwalan (Time Schedule):</strong> Distribusi item pekerjaan diselesaikan dalam {{ bulan_total }} Minggu (M1-M{{ bulan_total }}) secara proporsional berdasarkan Minggu Mulai & Minggu Selesai dari WBS.</li>
+            <li><strong>Analisis Kinerja:</strong> Warna biru menunjukkan rencana pekerjaan per minggu. Warna hijau menunjukkan realisasi aktual dari laporan harian.</li>
         </ul>
     </div>
 </div>
