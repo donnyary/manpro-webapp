@@ -1109,12 +1109,53 @@ def get_cloud_connection():
 
 # Tabel yang bisa di-sync (dalam urutan yang benar karena foreign key)
 SYNC_TABLES = [
-    'users', 'master_proyek', 'laporan_harian', 'tenaga_kerja',
-    'peralatan', 'material', 'pekerjaan', 'kondisi_lapangan',
-    'pengesahan', 'master_wbs', 'kategori_budget', 'master_budget',
-    'menu_permissions', 'active_sessions', 'settings',
-    'kategori_biaya', 'master_kategori_biaya', 'transaksi', 'transaksi_detail'
+    'users', 'master_proyek', 'master_kategori_biaya',
+    'laporan_harian', 'tenaga_kerja', 'peralatan', 'material',
+    'pekerjaan', 'kondisi_lapangan', 'pengesahan',
+    'master_wbs', 'kategori_budget', 'master_budget',
+    'menu_permissions', 'settings', 'user_projects',
+    'user_permissions', 'kategori_biaya'
 ]
+
+# Natural key per tabel — kolom unik untuk deteksi duplikat
+# Digunakan untuk cek apakah record sudah ada sebelum INSERT
+NATURAL_KEYS = {
+    'users': 'username',
+    'master_proyek': 'no_kontrak',
+    'master_kategori_biaya': 'nama_kategori',
+    'laporan_harian': None,  # pakai (proyek_id, tanggal_laporan) combo
+    'tenaga_kerja': None,    # pakai laporan_id + jenis_pekerja combo
+    'peralatan': None,
+    'material': None,
+    'pekerjaan': None,
+    'kondisi_lapangan': None,
+    'pengesahan': None,
+    'master_wbs': None,       # pakai (proyek_id, kode_wbs)
+    'kategori_budget': None,  # pakai (proyek_id, nama_kategori)
+    'master_budget': None,    # pakai (proyek_id, no_transaksi) if exists
+    'menu_permissions': None, # pakai (role, menu_key)
+    'settings': 'setting_key',
+    'user_projects': None,    # pakai (user_id, proyek_id)
+    'user_permissions': 'user_id',
+    'kategori_biaya': None,
+}
+
+# Composite keys — kombinasi kolom yang jadi "id unik"
+COMPOSITE_KEYS = {
+    'laporan_harian': ['proyek_id', 'tanggal_laporan'],
+    'tenaga_kerja': ['laporan_id', 'jenis_pekerja'],
+    'peralatan': ['laporan_id', 'nama_peralatan'],
+    'material': ['laporan_id', 'nama_material'],
+    'pekerjaan': ['laporan_id', 'jenis_pekerjaan', 'lokasi_pekerjaan'],
+    'kondisi_lapangan': ['laporan_id'],
+    'pengesahan': ['laporan_id'],
+    'master_wbs': ['proyek_id', 'kode_wbs'],
+    'kategori_budget': ['proyek_id', 'nama_kategori'],
+    'master_budget': ['proyek_id', 'no_transaksi'],
+    'menu_permissions': ['role', 'menu_key'],
+    'user_projects': ['user_id', 'proyek_id'],
+    'kategori_biaya': ['proyek_id', 'nama_kategori'],
+}
 
 @app.route('/sync')
 @role_required('admin')
