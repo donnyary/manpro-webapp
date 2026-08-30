@@ -2802,29 +2802,35 @@ def gantt_chart(proyek_id):
     cursor.execute("SELECT * FROM master_wbs WHERE proyek_id = %s ORDER BY id ASC", (proyek_id,))
     wbs_data = cursor.fetchall()
 
-    # 3. Setup Variabel Kalkulasi Time Schedule (BULANAN M1-M12)
-    bulan_total = 12  # M1 sampai M12
-    rencana_bulanan = [0] * bulan_total
+    # 3. Hitung minggu_total dari estimasi tanggal proyek (pembulatan ke atas)
+    import math
+    if proyek.get('tanggal_mulai') and proyek.get('tanggal_selesai'):
+        selisih_hari = (proyek['tanggal_selesai'] - proyek['tanggal_mulai']).days + 1
+        minggu_total = max(math.ceil(selisih_hari / 7), 1)
+    else:
+        minggu_total = 12  # default 12 minggu jika belum ada tanggal
 
-    # Baca jadwal dari database (bulan_mulai & bulan_selesai)
+    rencana_mingguan = [0] * minggu_total
+
+    # Baca jadwal dari database (bulan_mulai & bulan_selesai = nomor kolom M1-M{minggu_total})
     for item in wbs_data:
         bobot = float(item.get('bobot_persen', 0))
         bm = int(item.get('bulan_mulai', 1))
         bs = int(item.get('bulan_selesai', bm))
         if bs < bm:
             bs = bm
-        durasi_bulan = bs - bm + 1
+        durasi = bs - bm + 1
 
         item['start_month'] = bm
         item['end_month'] = bs
-        item['duration_bulan'] = durasi_bulan
+        item['duration_bulan'] = durasi
 
-        # Hitung bobot bulanan yang didistribusikan
-        if durasi_bulan > 0:
-            monthly_val = bobot / durasi_bulan
+        # Hitung bobot per kolom yang didistribusikan
+        if durasi > 0:
+            monthly_val = bobot / durasi
             for m in range(bm, bs + 1):
-                if 1 <= m <= bulan_total:
-                    rencana_bulanan[m-1] += monthly_val
+                if 1 <= m <= minggu_total:
+                    rencana_mingguan[m-1] += monthly_val
 
     # 4. Hitung Rencana Kumulatif (Kurva S Rencana)
     rencana_kumulatif = []
