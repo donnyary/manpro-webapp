@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grafik Progres Proyek & Kesimpulan</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .btn-print {
+            background-color: #28a745;
+        }
+        .btn-print:hover {
+            background-color: #218838;
+        }
+        .chart-container {
+            position: relative;
+            height: 450px;
+            width: 100%;
+            margin-bottom: 25px;
+        }
+        .summary-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            border-left: 5px solid #007bff;
+            margin-top: 20px;
+        }
+        .summary-box h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .summary-box ul {
+            margin: 10px 0 0 20px;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* Konfigurasi Khusus Cetak / Print A4 Landscape */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+            body {
+                background: white;
+                margin: 0;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+                width: 100%;
+            }
+            .btn-group {
+                display: none; /* Tombol disembunyikan saat dicetak */
+            }
+            .chart-container {
+                height: 320px;
+                page-break-inside: avoid;
+            }
+            .summary-box {
+                page-break-inside: avoid;
+                border: 1px solid #ccc;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h2>Dashboard Monitoring Kurva S & Progres Proyek (Tahun 2026)</h2>
+                <p style="margin: 0; color: #666;">Data Gabungan 3 Proyek Besar (Infrastruktur, Pendidikan & Sanitasi)</p>
+            </div>
+            <div class="btn-group">
+                <button onclick="resetZoom()">Reset Zoom Grafik</button>
+                <button class="btn-print" onclick="window.print()">Print A4 Landscape</button>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="progressChart"></canvas>
+        </div>
+        <p style="font-size: 12px; color: #666; text-align: center; margin-top: -10px;">
+            <em>*Tips: Gunakan scroll mouse pada area grafik untuk Zoom In/Out atau klik & geser untuk Pan (Geser tampilan).</em>
+        </p>
+
+        <div class="summary-box">
+            <h3>Kesimpulan & Evaluasi Akhir Proyek (Tahun 2026)</h3>
+            <ul>
+                <li><strong>Pencapaian Progres Fisik:</strong> Berdasarkan laporan harian aktif sepanjang tahun 2026, rata-rata progres kumulatif fisik ke-3 proyek besar berhasil ditutup pada angka <strong>98.5%</strong>, memenuhi target deviasi positif terhadap jadwal rencana kurva S.</li>
+                <li><strong>Efisiensi Anggaran & Transaksi:</strong> Ratusan transaksi keuangan harian (*petty cash*) dan pengeluaran material utama tercatat akuntabel dan terserap sesuai dengan pagu anggaran kontrak masing-masing proyek tanpa adanya pembengkakan biaya yang signifikan.</li>
+                <li><strong>Pengendalian K3 & Lapangan:</strong> Kendala cuaca (seperti hujan ringan di beberapa triwulan) berhasil dimitigasi secara efektif melalui penambahan jam kerja (*lembur*) terstruktur serta penerapan standar Keselamatan dan Kesehatan Kerja (K3) yang ketat di seluruh zona proyek.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('progressChart').getContext('2d');
+        
+        // Data Kumulatif Progres 1 Tahun Penuh (Januari s.d. Desember 2026)
+        const labelsData = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+        const planData = [5.0, 15.0, 25.0, 35.0, 48.0, 60.0, 72.0, 82.0, 90.0, 95.0, 98.0, 100.0];
+        const actualData = [4.2, 14.1, 23.5, 33.8, 46.2, 58.5, 70.1, 80.4, 88.6, 93.5, 97.2, 98.5];
+
+        const progressChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labelsData,
+                datasets: [
+                    {
+                        label: 'Rencana (Plan Kurva S)',
+                        data: planData,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.2
+                    },
+                    {
+                        label: 'Realisasi (Actual Progress)',
+                        data: actualData,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        borderWidth: 3,
+                        fill: false,
+                        tension: 0.2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    zoom: {
+                        zoom: {
+                            wheel: {
+                                enabled: true, // Aktifkan zoom dengan scroll mouse
+                            },
+                            pinch: {
+                                enabled: true  // Aktifkan zoom cubit pada perangkat layar sentuh
+                            },
+                            mode: 'xy',      // Bisa zoom di sumbu X dan Y
+                        },
+                        pan: {
+                            enabled: true,   // Aktifkan geser grafik
+                            mode: 'xy',
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 14
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 105,
+                        title: {
+                            display: true,
+                            text: 'Prosentase Progres (%)',
+                            font: { weight: 'bold' }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Bulan Tahun 2026',
+                            font: { weight: 'bold' }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Fungsi untuk mengembalikan ukuran grafik ke posisi default
+        function resetZoom() {
+            progressChart.resetZoom();
+        }
+    </script>
+</body>
+</html>

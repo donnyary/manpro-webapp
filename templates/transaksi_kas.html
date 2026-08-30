@@ -1,0 +1,417 @@
+{% extends 'base.html' %}
+
+{% block title %}Daftar Transaksi Kas - {{ proyek.nama_proyek }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Notification Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+         {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3 mb-4">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+         {% endfor %}
+       {% endif %}
+    {% endwith %}
+
+    <!-- Metric Cards Ringkasan Kas -->
+    {% set total_masuk = namespace(val=0) %}
+    {% set total_keluar = namespace(val=0) %}
+    {% for t in transaksi_list %}
+        {% if t.jenis_kas == 'masuk' %}
+            {% set total_masuk.val = total_masuk.val + (t.realisasi_biaya or 0) %}
+        {% else %}
+            {% set total_keluar.val = total_keluar.val + (t.realisasi_biaya or 0) %}
+        {% endif %}
+    {% endfor %}
+    {% set saldo_akhir = total_masuk.val - total_keluar.val %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-white" style="background-color: #198754;">
+                <div class="small text-uppercase fw-bold opacity-75">TOTAL KAS MASUK</div>
+                <div class="fs-2 fw-bold mt-1">Rp {{ "{:,.0f}".format(total_masuk.val) }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-white" style="background-color: #dc3545;">
+                <div class="small text-uppercase fw-bold opacity-75">TOTAL KAS KELUAR</div>
+                <div class="fs-2 fw-bold mt-1">Rp {{ "{:,.0f}".format(total_keluar.val) }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-white" style="background-color: #0d6efd;">
+                <div class="small text-uppercase fw-bold opacity-75">SALDO AKHIR</div>
+                <div class="fs-2 fw-bold mt-1">Rp {{ "{:,.0f}".format(saldo_akhir) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Baris -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white mb-4">
+        <form method="GET" action="/transaksi_kas/{{ proyek.id }}">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary">Dari Tanggal</label>
+                    <input type="date" class="form-control rounded-3" name="tgl_mulai" value="{{ tgl_mulai }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary">Sampai Tanggal</label>
+                    <input type="date" class="form-control rounded-3" name="tgl_selesai" value="{{ tgl_selesai }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary">Kategori Biaya</label>
+                    <select class="form-select rounded-3" name="kategori">
+                        <option value="">-- Semua --</option>
+                        {% for k in kategori_list %}
+                        <option value="{{ k.nama_kategori }}" {% if kategori_filter == k.nama_kategori %}selected{% endif %}>{{ k.nama_kategori }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-secondary rounded-3 px-3 flex-fill"><i class="fa-solid fa-filter me-1"></i> Filter</button>
+                    <a href="/transaksi_kas/{{ proyek.id }}" class="btn btn-outline-secondary rounded-3 px-3"><i class="fa-solid fa-rotate me-1"></i> Reset</a>
+                    <a href="/cetak_transaksi_kas/{{ proyek.id }}?tgl_mulai={{ tgl_mulai }}&tgl_selesai={{ tgl_selesai }}&kategori={{ kategori_filter }}" target="_blank" class="btn btn-dark rounded-3 px-3" title="Cetak Transaksi"><i class="fa-solid fa-print"></i></a>
+                    <a href="/laporan_proyek_budget/{{ proyek.id }}" class="btn btn-info text-white rounded-3 px-3 fw-semibold" title="Rekapitulasi Anggaran"><i class="fa-solid fa-chart-pie"></i></a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Grouping Data Transaksi Berdasarkan No Transaksi -->
+    {% set grouped_trx = {} %}
+    {% for t in transaksi_list %}
+        {% set key = t.no_transaksi or ('TRX-' ~ t.id) %}
+        {% if key not in grouped_trx %}
+            {% set _ = grouped_trx.update({key: {'id': t.id, 'no_transaksi': key, 'tanggal': t.tanggal_transaksi, 'jenis_kas': t.jenis_kas, 'pembuat': t.pembuat or 'Administrator', 'group_items': [], 'total': 0}}) %}
+        {% endif %}
+        {% set _ = grouped_trx[key]['group_items'].append(t) %}
+        {% set _ = grouped_trx[key].update({'total': grouped_trx[key]['total'] + (t.realisasi_biaya or 0)}) %}
+    {% endfor %}
+
+    <!-- Tabel Daftar Transaksi Kas -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-list me-2"></i>Daftar Transaksi Kas</h5>
+            <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAddBudget">
+                <i class="fa-solid fa-plus me-1"></i> Tambah Transaksi Baru
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 130px;">No. Transaksi</th>
+                        <th style="width: 120px;">Tanggal</th>
+                        <th style="width: 100px;">Jenis</th>
+                        <th>Rincian Item & Kategori</th>
+                        <th class="text-end" style="width: 160px;">Total</th>
+                        <th style="width: 140px;">Pembuat</th>
+                        <th class="text-center" style="width: 100px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for key, group in grouped_trx.items() %}
+                    <tr>
+                        <td class="fw-bold text-dark">{{ group.no_transaksi }}</td>
+                        <td>{{ group.tanggal or '-' }}</td>
+                        <td>
+                            {% if group.jenis_kas == 'masuk' %}
+                            <span class="badge bg-success text-uppercase px-2 py-1">MASUK</span>
+                            {% else %}
+                            <span class="badge bg-danger text-uppercase px-2 py-1">KELUAR</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% for item in group['group_items'] %}
+                            <div class="py-1 {% if not loop.last %}border-bottom{% endif %}">
+                                <div class="fw-bold text-dark">
+                                    {{ item.nama_item }}
+                                    <span class="text-primary fw-normal small">Rp {{ "{:,.0f}".format(item.realisasi_biaya or 0) }}</span>
+                                </div>
+                                <div class="text-muted small">
+                                    Proj: - | Kat: <span class="fw-bold text-uppercase">{{ item.kategori }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </td>
+                        <td class="text-end fw-bold text-dark fs-6">
+                            Rp {{ "{:,.0f}".format(group.total) }}
+                        </td>
+                        <td class="text-secondary small">{{ group.pembuat }}</td>
+                        <td class="text-center">
+                            {% if session.role in ['admin', 'manager'] %}
+                            <button class="btn btn-sm btn-warning text-white rounded-2 px-2 py-1 me-1" data-bs-toggle="modal" data-bs-target="#modalEditGroup{{ loop.index }}" title="Edit">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <a href="/delete_budget/{{ group.id }}/{{ proyek.id }}" class="btn btn-sm btn-danger rounded-2 px-2 py-1" onclick="return confirm('Hapus seluruh transaksi ini?')" title="Hapus">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">Belum ada transaksi kas yang dicatat.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL EDIT DATA TRANSAKSI                  -->
+<!-- ========================================== -->
+{% for key, group in grouped_trx.items() %}
+<div class="modal fade" id="modalEditGroup{{ loop.index }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form action="/edit_budget/{{ group.id }}/{{ proyek.id }}" method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Transaksi Kas</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">No. Transaksi</label>
+                            <input type="text" class="form-control rounded-3" name="no_transaksi" value="{{ group.no_transaksi }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Tanggal</label>
+                            <input type="date" class="form-control rounded-3" name="tanggal_transaksi" value="{{ group.tanggal }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Jenis Kas</label>
+                            <select class="form-select rounded-3" name="jenis">
+                                <option value="keluar" {% if group.jenis_kas != 'masuk' %}selected{% endif %}>Kas Keluar</option>
+                                <option value="masuk" {% if group.jenis_kas == 'masuk' %}selected{% endif %}>Kas Masuk</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label small fw-bold mb-0">Rincian Item Transaksi</label>
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="tambahBarisEditGroup('tableGroupEdit{{ loop.index }}')">
+                            <i class="fa-solid fa-plus me-1"></i> Tambah Baris Item
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle" id="tableGroupEdit{{ loop.index }}">
+                            <thead class="table-light small fw-bold">
+                                <tr>
+                                    <th>Uraian / Keterangan</th>
+                                    <th style="width: 200px;">Kategori</th>
+                                    <th style="width: 100px;">Qty</th>
+                                    <th style="width: 160px;">Harga Satuan</th>
+                                    <th style="width: 160px;">Sub Total</th>
+                                    <th style="width: 50px;" class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in group['group_items'] %}
+                                <tr>
+                                    <td><input type="text" class="form-control form-control-sm" name="keterangan[]" value="{{ item.nama_item }}" required></td>
+                                    <td>
+                                        <select class="form-select form-select-sm" name="kategori[]" onchange="cekTambahKategori(this, {{ proyek.id }})" required>
+                                            {% for k in kategori_list %}
+                                            <option value="{{ k.nama_kategori }}" {% if k.nama_kategori == item.kategori %}selected{% endif %}>{{ k.nama_kategori }}</option>
+                                            {% endfor %}
+                                            <option value="__ADD_NEW__" class="fw-bold text-primary" style="background-color: #f8f9fa;">+ Tambah Kategori Biaya</option>
+                                        </select>
+                                    </td>
+                                    <td><input type="number" step="0.01" class="form-control form-control-sm edit-qty" name="kuantitas[]" value="{{ item.get('kuantitas') if item.get('kuantitas') != None else 1 }}" oninput="hitungSubtotalEdit(this)" required></td>
+                                    <td><input type="number" step="0.01" class="form-control form-control-sm edit-harga" name="harga_satuan[]" value="{{ item.get('harga_satuan') if item.get('harga_satuan') != None else item.get('realisasi_biaya', 0) }}" oninput="hitungSubtotalEdit(this)" required></td>
+                                    <td><input type="number" step="0.01" class="form-control form-control-sm edit-subtotal bg-light" name="subtotal[]" value="{{ item.realisasi_biaya }}" readonly></td>
+                                    <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBarisEdit(this)"><i class="fa-solid fa-trash"></i></button></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning text-white rounded-pill px-4">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- ========================================== -->
+<!-- MODAL TAMBAH TRANSAKSI KAS BARU            -->
+<!-- ========================================== -->
+<div class="modal fade" id="modalAddBudget" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form action="/add_budget/{{ proyek.id }}" method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-plus-circle me-2"></i>Tambah Transaksi Kas Baru</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">No. Transaksi</label>
+                            <input type="text" class="form-control rounded-3" name="no_transaksi" placeholder="Contoh: TRX-001" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Tanggal Transaksi</label>
+                            <input type="date" class="form-control rounded-3" name="tanggal_transaksi" required>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label small fw-bold mb-0">Rincian Item Transaksi</label>
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="tambahBarisAdd()">
+                            <i class="fa-solid fa-plus me-1"></i> Tambah Baris Item
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle" id="tableAdd">
+                            <thead class="table-light small fw-bold">
+                                <tr>
+                                    <th>Uraian / Keterangan</th>
+                                    <th style="width: 200px;">Kategori</th>
+                                    <th style="width: 100px;">Qty</th>
+                                    <th style="width: 160px;">Harga Satuan</th>
+                                    <th style="width: 160px;">Sub Total</th>
+                                    <th style="width: 50px;" class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="text" class="form-control form-control-sm" name="keterangan[]" placeholder="Nama item/keterangan" required></td>
+                                    <td>
+                                        <select class="form-select form-select-sm" name="kategori[]" onchange="cekTambahKategori(this, {{ proyek.id }})" required>
+                                            {% for k in kategori_list %}
+                                            <option value="{{ k.nama_kategori }}">{{ k.nama_kategori }}</option>
+                                            {% endfor %}
+                                            <option value="__ADD_NEW__" class="fw-bold text-primary" style="background-color: #f8f9fa;">+ Tambah Kategori Biaya</option>
+                                        </select>
+                                    </td>
+                                    <td><input type="number" step="0.01" class="form-control form-control-sm add-qty" name="kuantitas[]" value="1" oninput="hitungSubtotalAdd(this)" required></td>
+                                    <td><input type="number" step="0.01" class="form-control form-control-sm add-harga" name="harga_satuan[]" value="0" oninput="hitungSubtotalAdd(this)" required></td>
+                                    <td><input type="number" step="0.01" class="form-control form-control-sm add-subtotal bg-light" name="subtotal[]" value="0" readonly></td>
+                                    <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBarisAdd(this)"><i class="fa-solid fa-trash"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Simpan Transaksi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function hitungSubtotalAdd(elem) {
+    let tr = elem.closest('tr');
+    let qty = parseFloat(tr.querySelector('.add-qty').value) || 0;
+    let harga = parseFloat(tr.querySelector('.add-harga').value) || 0;
+    tr.querySelector('.add-subtotal').value = qty * harga;
+}
+
+function hitungSubtotalEdit(elem) {
+    let tr = elem.closest('tr');
+    let qty = parseFloat(tr.querySelector('.edit-qty').value) || 0;
+    let harga = parseFloat(tr.querySelector('.edit-harga').value) || 0;
+    tr.querySelector('.edit-subtotal').value = qty * harga;
+}
+
+function hapusBarisAdd(btn) {
+    let row = btn.closest('tr');
+    if (row.parentNode.rows.length > 1) {
+        row.remove();
+    } else {
+        alert('Minimal harus ada 1 baris item!');
+    }
+}
+
+function hapusBarisEdit(btn) {
+    let row = btn.closest('tr');
+    if (row.parentNode.rows.length > 1) {
+        row.remove();
+    } else {
+        alert('Minimal harus ada 1 baris item!');
+    }
+}
+
+function cekTambahKategori(selectElem, proyekId) {
+    if (selectElem.value === '__ADD_NEW__') {
+        let kategoriBaru = prompt("Masukkan nama Kategori Biaya baru:");
+        if (kategoriBaru && kategoriBaru.trim() !== "") {
+            let formData = new FormData();
+            formData.append('nama_kategori', kategoriBaru.trim().toUpperCase());
+            formData.append('_csrf_token', "{{ csrf_token() }}");
+
+            fetch('/add_kategori_budget/' + proyekId, {
+                method: 'POST',
+                body: formData
+            }).then(response => {
+                location.reload(); 
+            }).catch(error => {
+                alert("Gagal menambahkan kategori.");
+                selectElem.selectedIndex = 0;
+            });
+        } else {
+            selectElem.selectedIndex = 0;
+        }
+    }
+}
+
+function tambahBarisAdd() {
+    let tbody = document.getElementById('tableAdd').getElementsByTagName('tbody')[0];
+    let newRow = tbody.insertRow();
+    newRow.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" name="keterangan[]" placeholder="Nama item/keterangan" required></td>
+        <td>
+            <select class="form-select form-select-sm" name="kategori[]" onchange="cekTambahKategori(this, {{ proyek.id }})" required>
+                {% for k in kategori_list %}
+                <option value="{{ k.nama_kategori }}">{{ k.nama_kategori }}</option>
+                {% endfor %}
+                <option value="__ADD_NEW__" class="fw-bold text-primary" style="background-color: #f8f9fa;">+ Tambah Kategori Biaya</option>
+            </select>
+        </td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm add-qty" name="kuantitas[]" value="1" oninput="hitungSubtotalAdd(this)" required></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm add-harga" name="harga_satuan[]" value="0" oninput="hitungSubtotalAdd(this)" required></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm add-subtotal bg-light" name="subtotal[]" value="0" readonly></td>
+        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBarisAdd(this)"><i class="fa-solid fa-trash"></i></button></td>
+    `;
+}
+
+function tambahBarisEditGroup(tableId) {
+    let tbody = document.getElementById(tableId).getElementsByTagName('tbody')[0];
+    let newRow = tbody.insertRow();
+    newRow.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" name="keterangan[]" placeholder="Nama item/keterangan" required></td>
+        <td>
+            <select class="form-select form-select-sm" name="kategori[]" onchange="cekTambahKategori(this, {{ proyek.id }})" required>
+                {% for k in kategori_list %}
+                <option value="{{ k.nama_kategori }}">{{ k.nama_kategori }}</option>
+                {% endfor %}
+                <option value="__ADD_NEW__" class="fw-bold text-primary" style="background-color: #f8f9fa;">+ Tambah Kategori Biaya</option>
+            </select>
+        </td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm edit-qty" name="kuantitas[]" value="1" oninput="hitungSubtotalEdit(this)" required></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm edit-harga" name="harga_satuan[]" value="0" oninput="hitungSubtotalEdit(this)" required></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm edit-subtotal bg-light" name="subtotal[]" value="0" readonly></td>
+        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBarisEdit(this)"><i class="fa-solid fa-trash"></i></button></td>
+    `;
+}
+</script>
+{% endblock %}

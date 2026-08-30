@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Transaksi - {{ proyek.nama_proyek }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Notifikasi Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+         {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3 mb-4">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+         {% endfor %}
+       {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-lg border-0 rounded-4 bg-white">
+        <!-- Header Halaman Edit -->
+        <div class="card-header bg-warning text-white py-3 px-4 d-flex justify-content-between align-items-center rounded-top-4">
+            <h5 class="mb-0 fw-bold"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Transaksi: {{ no_transaksi }}</h5>
+            <a href="/transaksi_kas/{{ proyek.id }}" class="btn btn-light btn-sm rounded-pill px-3 fw-semibold text-dark"><i class="fa-solid fa-arrow-left me-1"></i> Kembali</a>
+        </div>
+
+        <form action="/update_transaksi_full/{{ proyek.id }}/{{ no_transaksi }}" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="card-body p-4">
+                <!-- Informasi Utama Transaksi -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">No. Transaksi</label>
+                        <input type="text" class="form-control rounded-3" name="no_transaksi" value="{{ no_transaksi }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Tanggal</label>
+                        <input type="date" class="form-control rounded-3" name="tanggal_transaksi" value="{{ tanggal }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Jenis Kas</label>
+                        <select class="form-select rounded-3" name="jenis">
+                            <option value="keluar" {% if jenis_kas != 'masuk' %}selected{% endif %}>Kas Keluar (Pengeluaran)</option>
+                            <option value="masuk" {% if jenis_kas == 'masuk' %}selected{% endif %}>Kas Masuk (Pemasukan)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr class="text-muted opacity-25 my-4">
+
+                <!-- Tabel Rincian Item Transaksi -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <label class="form-label fw-bold text-dark fs-6 mb-0">Rincian Item Transaksi</label>
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold" onclick="tambahBarisFull()">
+                        <i class="fa-solid fa-plus me-1"></i> Tambah Baris Item
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle" id="tableFullEdit">
+                        <thead class="table-light small fw-bold text-secondary">
+                            <tr>
+                                <th style="min-width: 180px;">Uraian / Keterangan</th>
+                                <th style="width: 180px;">Pilih Project</th>
+                                <th style="width: 160px;">Kategori</th>
+                                <th style="width: 90px;">Qty</th>
+                                <th style="width: 130px;">Harga Satuan</th>
+                                <th style="width: 150px;">Sub Total</th>
+                                <th style="width: 130px;" class="text-center">Lampiran File</th>
+                                <th style="width: 50px;" class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items_list %}
+                            <tr>
+                                <td><input type="text" class="form-control form-control-sm" name="keterangan[]" value="{{ item.nama_item }}" required></td>
+                                <td>
+                                    <select class="form-select form-select-sm" name="sub_proyek[]">
+                                        <option value="">-- Pilih Project --</option>
+                                        <option value="Project A" {% if item.sub_proyek == 'Project A' %}selected{% endif %}>Project A</option>
+                                        <option value="Project B" {% if item.sub_proyek == 'Project B' %}selected{% endif %}>Project B</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm" name="kategori[]" required>
+                                        {% for k in kategori_list %}
+                                        <option value="{{ k.nama_kategori }}" {% if k.nama_kategori == item.kategori %}selected{% endif %}>{{ k.nama_kategori }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td><input type="number" step="0.01" class="form-control form-control-sm edit-qty" name="kuantitas[]" value="{{ item.kuantitas or 1 }}" oninput="hitungSubtotalFull(this)" required></td>
+                                <td><input type="number" step="0.01" class="form-control form-control-sm edit-harga" name="harga_satuan[]" value="{{ item.harga_satuan or item.realisasi_biaya }}" oninput="hitungSubtotalFull(this)" required></td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm edit-subtotal-text fw-bold text-success bg-light" value="Rp {{ '{:,.0f}'.format(item.realisasi_biaya or 0) }}" readonly>
+                                    <input type="hidden" class="edit-subtotal-val" name="subtotal[]" value="{{ item.realisasi_biaya }}">
+                                </td>
+                                <td class="text-center">
+                                    <input type="file" class="d-none" name="file_lampiran[]" id="file_{{ loop.index0 }}">
+                                    <label for="file_{{ loop.index0 }}" class="btn btn-sm btn-outline-secondary py-0 px-2 small text-truncate" style="max-width: 120px;" title="Pilih File">
+                                        <i class="fa-solid fa-paperclip me-1"></i> Choose File
+                                    </label>
+                                    {% if item.lampiran %}
+                                    <div class="small text-muted mt-1 text-truncate" style="max-width: 120px;">{{ item.lampiran }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBarisFull(this)"><i class="fa-solid fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tombol Aksi Bawah -->
+                <div class="d-flex justify-content-end gap-2 mt-4">
+                    <a href="/transaksi_kas/{{ proyek.id }}" class="btn btn-secondary rounded-pill px-4">Batal</a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold">Simpan Perubahan</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function formatRupiah(angka) {
+    return 'Rp ' + Number(angka).toLocaleString('id-ID');
+}
+
+function hitungSubtotalFull(elem) {
+    let tr = elem.closest('tr');
+    let qty = parseFloat(tr.querySelector('.edit-qty').value) || 0;
+    let harga = parseFloat(tr.querySelector('.edit-harga').value) || 0;
+    let subtotal = qty * harga;
+    
+    tr.querySelector('.edit-subtotal-val').value = subtotal;
+    tr.querySelector('.edit-subtotal-text').value = formatRupiah(subtotal);
+}
+
+function hapusBarisFull(btn) {
+    let row = btn.closest('tr');
+    if (row.parentNode.rows.length > 1) {
+        row.remove();
+    } else {
+        alert('Minimal harus ada 1 baris item dalam transaksi!');
+    }
+}
+
+function tambahBarisFull() {
+    let tbody = document.getElementById('tableFullEdit').getElementsByTagName('tbody')[0];
+    let rowIdx = tbody.rows.length;
+    let newRow = tbody.insertRow();
+    newRow.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" name="keterangan[]" placeholder="Nama item/keterangan" required></td>
+        <td>
+            <select class="form-select form-select-sm" name="sub_proyek[]">
+                <option value="">-- Pilih Project --</option>
+                <option value="Project A">Project A</option>
+                <option value="Project B">Project B</option>
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm" name="kategori[]" required>
+                {% for k in kategori_list %}
+                <option value="{{ k.nama_kategori }}">{{ k.nama_kategori }}</option>
+                {% endfor %}
+            </select>
+        </td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm edit-qty" name="kuantitas[]" value="1" oninput="hitungSubtotalFull(this)" required></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm edit-harga" name="harga_satuan[]" value="0" oninput="hitungSubtotalFull(this)" required></td>
+        <td>
+            <input type="text" class="form-control form-control-sm edit-subtotal-text fw-bold text-success bg-light" value="Rp 0" readonly>
+            <input type="hidden" class="edit-subtotal-val" name="subtotal[]" value="0">
+        </td>
+        <td class="text-center">
+            <input type="file" class="d-none" name="file_lampiran[]" id="file_new_${rowIdx}">
+            <label for="file_new_${rowIdx}" class="btn btn-sm btn-outline-secondary py-0 px-2 small">
+                <i class="fa-solid fa-paperclip me-1"></i> Choose File
+            </label>
+        </td>
+        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBarisFull(this)"><i class="fa-solid fa-trash"></i></button></td>
+    `;
+}
+</script>
+{% endblock %}

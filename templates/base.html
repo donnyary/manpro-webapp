@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistem Manajemen Proyek Terpadu{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .sidebar { min-height: 100vh; background-color: #0f172a; color: white; }
+        .sidebar a { color: #cbd5e1; text-decoration: none; padding: 10px 15px; display: block; border-radius: 8px; margin-bottom: 5px; transition: all 0.2s; }
+        .sidebar a:hover, .sidebar a.active { background-color: #1e293b; color: #ffffff; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar Navigasi -->
+            <div class="col-md-2 sidebar p-4 d-flex flex-column justify-content-between">
+                <div>
+                    <h4 class="fw-bold mb-3 text-info"><i class="fa-solid fa-helmet-safety me-2"></i>MANPRO</h4>
+                    
+                    <!-- User Info Card -->
+                    {% if session.get('logged_in') %}
+                    <div class="bg-secondary bg-opacity-25 rounded-3 p-2 mb-3 text-center">
+                        <div class="d-flex align-items-center justify-content-center mb-1">
+                            <i class="fa-solid fa-circle-user me-2 text-info" style="font-size: 1.5rem;"></i>
+                            <div class="text-start">
+                                <div class="text-white fw-bold small" style="line-height:1.2;">{{ session.nama_lengkap or session.username }}</div>
+                                <span class="badge {% if session.role == 'admin' %}bg-danger{% elif session.role == 'manager' %}bg-primary{% else %}bg-secondary{% endif %} px-2 py-0" style="font-size: 0.6rem;">{{ session.role|upper }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <hr class="border-secondary">
+                    <ul class="list-unstyled">
+                        <!-- Menu Utama -->
+                        {% if has_menu_access('dashboard') %}
+                        <li><a href="/" class="{% if request.path == '/' %}active{% endif %}"><i class="fa-solid fa-house me-2"></i> Dashboard Utama</a></li>
+                        {% endif %}
+                        
+                        <!-- Menu Pengaturan Global Kontraktor -->
+                        {% if has_menu_access('pengaturan') %}
+                        <li><a href="/pengaturan" class="{% if request.path == '/pengaturan' %}active{% endif %}"><i class="fa-solid fa-gear me-2"></i> Pengaturan Utama</a></li>
+                        {% endif %}
+                        
+                        <!-- Menu Admin Only -->
+                        {% if has_menu_access('users') %}
+                        <li><a href="/users" class="{% if request.path == '/users' or request.path == '/hak_akses' or request.path == '/active_sessions' %}active{% endif %}"><i class="fa-solid fa-users-gear me-2"></i> Kelola User</a></li>
+                        <li><a href="/hak_akses" class="{% if request.path == '/hak_akses' %}active{% endif %}"><i class="fa-solid fa-shield-halved me-2"></i> Hak Akses</a></li>
+                        <li><a href="/active_sessions" class="{% if request.path == '/active_sessions' %}active{% endif %}"><i class="fa-solid fa-desktop me-2"></i> Sesi Aktif</a></li>
+                        {% endif %}
+                        
+                        <!-- Menu Spesifik Proyek -->
+                        {% if proyek and request.path != '/pengaturan' %}
+                        <li class="mt-4 text-uppercase small text-white fw-bold px-2 mb-2" style="letter-spacing: 0.5px;">Menu Proyek</li>
+                        {% if has_menu_access('daily_report') %}
+                        <li><a href="/workspace/{{ proyek.id }}" class="{% if 'workspace' in request.path or 'input' in request.path or 'edit_laporan' in request.path %}active{% endif %}"><i class="fa-solid fa-clock-rotate-left me-2"></i> Daily Report</a></li>
+                        {% endif %}
+                        {% if has_menu_access('weekly_report') %}
+                        <li><a href="/weekly/{{ proyek.id }}" class="{% if 'weekly' in request.path %}active{% endif %}"><i class="fa-solid fa-calendar-week me-2"></i> Weekly Report</a></li>
+                        {% endif %}
+                        {% if has_menu_access('monthly_report') %}
+                        <li><a href="/monthly/{{ proyek.id }}" class="{% if 'monthly' in request.path %}active{% endif %}"><i class="fa-solid fa-calendar-days me-2"></i> Monthly Report</a></li>
+                        {% endif %}
+                        {% if has_menu_access('gantt') %}
+                        <li><a href="/gantt/{{ proyek.id }}" class="{% if 'gantt' in request.path %}active{% endif %}"><i class="fa-solid fa-chart-line me-2"></i> Time Schedule & Kurva S</a></li>
+                        {% endif %}
+                        {% if has_menu_access('wbs') %}
+                        <li><a href="/wbs/{{ proyek.id }}" class="{% if 'wbs' in request.path %}active{% endif %}"><i class="fa-solid fa-sitemap me-2"></i> WBS Management</a></li>
+                        {% endif %}
+                        {% if has_menu_access('budget') %}
+                        <li><a href="/budget/{{ proyek.id }}" class="{% if 'budget' in request.path or 'transaksi_kas' in request.path or 'anggaran_pagu' in request.path %}active{% endif %}"><i class="fa-solid fa-sack-dollar me-2"></i> Cost & Budget</a></li>
+                        {% endif %}
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <!-- Footer Sidebar -->
+                <div class="text-muted small text-center pt-3">
+                    <hr class="border-secondary mb-2">
+                    {% if session.get('logged_in') %}
+                    <a href="/logout" class="btn btn-outline-danger btn-sm w-100 rounded-pill mb-2 fw-semibold">
+                        <i class="fa-solid fa-right-from-bracket me-1"></i> Logout
+                    </a>
+                    {% endif %}
+                    <p class="mb-1" style="font-size: 0.75rem; line-height: 1.2;">Software dibuat oleh<br><strong class="text-light">Donny Aryanto</strong></p>
+                    <p class="mb-0" style="font-size: 0.7rem;"><a href="mailto:donnyary@yahoo.com" class="text-info text-decoration-none">donnyary@yahoo.com</a></p>
+                </div>
+            </div>
+            <!-- Konten Utama -->
+            <div class="col-md-10 p-4">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

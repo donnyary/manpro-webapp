@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cetak Laporan Kurva S - MANPRO</title>
+    <!-- 1. Bootstrap 5 CSS CDN (Wajib agar tombol dan layout rapi) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 2. FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            border-radius: 10px;
+        }
+        
+        /* Pengaturan Khusus Mode Cetak (Print A4 Landscape) */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+            body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .card {
+                border: 1px solid #dee2e6 !important;
+                box-shadow: none !important;
+                page-break-inside: avoid;
+                margin-bottom: 15px !important;
+            }
+            .container-fluid {
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid py-4 px-4">
+        <!-- Header Halaman Cetak -->
+        <div class="card bg-dark text-white mb-4 border-0 shadow-sm">
+            <div class="card-body d-flex justify-content-between align-items-center py-3">
+                <div>
+                    <span class="badge bg-primary mb-1">LAPORAN KURVA S</span>
+                    <h3 class="mb-0 fw-bold">{{ proyek.nama_proyek if proyek else 'Laporan Kurva S Proyek' }}</h3>
+                    <p class="text-white-50 small mb-0">Dokumen Cetak Progres Rencana vs Realisasi Pekerjaan</p>
+                </div>
+                <div class="no-print">
+                    <button class="btn btn-outline-light btn-sm rounded-pill px-3" onclick="history.back()">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Kembali
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tombol Aksi Kontrol (Disembunyikan saat dicetak) -->
+        <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+            <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-chart-line text-primary me-2"></i> Grafik Progres</h5>
+            <div>
+                <button class="btn btn-outline-secondary btn-sm me-2 shadow-sm rounded-pill px-3" onclick="resetZoom()">
+                    <i class="fa-solid fa-search-minus me-1"></i> Reset Zoom
+                </button>
+                <button class="btn btn-success btn-sm shadow-sm rounded-pill px-3" onclick="window.print()">
+                    <i class="fa-solid fa-print me-1"></i> Print A4 Landscape
+                </button>
+            </div>
+        </div>
+
+        <!-- Grafik Progres Kurva S -->
+        <div class="card mb-4 shadow-sm border-0 rounded-4 p-4 bg-white">
+            <div style="height: 380px; position: relative;">
+                <canvas id="kurvaSChart"></canvas>
+            </div>
+            <div class="text-center mt-2 no-print">
+                <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i> *Gunakan scroll mouse pada area grafik untuk Zoom In/Out atau klik & geser untuk navigasi.</small>
+            </div>
+        </div>
+
+        <!-- Kotak Kesimpulan & Evaluasi Proyek -->
+        <div class="card shadow-sm border-0 rounded-4 p-4 bg-white border-start border-primary border-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Kesimpulan & Evaluasi Proyek</h5>
+            <ul class="mb-0 text-secondary ps-3" style="line-height: 1.8;">
+                <li><strong>Progres Mingguan (Minggu 1 - 52):</strong> Realisasi fisik kumulatif terpantau konsisten dan mengikuti target kurva S mingguan yang telah direncanakan.</li>
+                <li><strong>Pengendalian Anggaran:</strong> Penyerapan biaya dan transaksi harian berjalan sesuai dengan pagu kontrak proyek.</li>
+                <li><strong>Mitigasi Lapangan:</strong> Kendala operasional mingguan diatasi melalui penyesuaian jadwal kerja dan pengawasan K3 yang ketat.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Pustaka JavaScript Lengkap (Wajib Dimuat) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+    <script>
+        const ctx = document.getElementById('kurvaSChart').getContext('2d');
+        
+        // Data dinamis dari backend atau data fallback jika data kosong
+        const labelsData = {{ labels | safe if labels else "Array.from({length: 52}, (_, i) => 'Minggu ' + (i + 1))" }};
+        const realisasiData = {{ realisasi | safe if realisasi else "Array.from({length: 52}, (_, i) => ((i + 1) * 1.88 > 98.5 ? 98.5 : ((i + 1) * 1.88).toFixed(1)))" }};
+        const rencanaData = {{ rencana | safe if rencana else "Array.from({length: 52}, (_, i) => ((i + 1) * 1.95 > 100 ? 100 : ((i + 1) * 1.95).toFixed(1)))" }};
+
+        const kurvaSChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labelsData,
+                datasets: [
+                    {
+                        label: 'Realisasi (%)',
+                        data: realisasiData,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.2
+                    },
+                    {
+                        label: 'Rencana (%)',
+                        data: rencanaData,
+                        borderColor: '#198754',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    zoom: {
+                        zoom: {
+                            wheel: { enabled: true },
+                            pinch: { enabled: true },
+                            mode: 'xy',
+                        },
+                        pan: {
+                            enabled: true,
+                            mode: 'xy',
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: { font: { size: 13, weight: 'bold' } }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 105,
+                        title: { display: true, text: 'Prosentase Progres (%)', font: { weight: 'bold' } }
+                    },
+                    x: {
+                        title: { display: true, text: 'Periode Waktu', font: { weight: 'bold' } }
+                    }
+                }
+            }
+        });
+
+        // Fungsi Reset Zoom
+        function resetZoom() {
+            kurvaSChart.resetZoom();
+        }
+    </script>
+</body>
+</html>

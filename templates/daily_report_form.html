@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Input Daily Report Proyek</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5" style="max-width: 700px;">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Form Daily Report Proyek</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Tanggal</label>
+                        <input type="date" name="tanggal" value="{{ today_date }}" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Proyek</label>
+                        <select name="project_id" class="form-select" required>
+                            {% for p in projects %}
+                            <option value="{{ p['id'] }}">{{ p['nama_project'] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Cuaca</label>
+                            <input type="text" name="cuaca" class="form-control" placeholder="Cerah / Hujan">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Jumlah Pekerja (MP)</label>
+                            <input type="number" name="manpower_count" class="form-control" value="0">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Progres Fisik (%)</label>
+                            <input type="number" step="0.1" name="progres_fisik" class="form-control" value="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Pekerjaan Hari Ini</label>
+                        <textarea name="pekerjaan_hari_ini" class="form-control" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Kendala di Lapangan</label>
+                        <textarea name="kendala" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rencana Besok</label>
+                        <textarea name="rencana_besok" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Lampiran Foto Kegiatan</label>
+                        <input type="file" name="lampiran_foto" class="form-control" accept="image/*">
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('daily_report_list') }}" class="btn btn-secondary">Batal</a>
+                        <button type="submit" class="btn btn-primary">Simpan Report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

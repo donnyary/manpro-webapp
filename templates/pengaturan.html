@@ -1,0 +1,107 @@
+{% extends 'base.html' %} 
+
+{% block title %}Pengaturan Global Perusahaan{% endblock %} 
+
+{% block content %} 
+
+<div class="card shadow-lg border-0 mb-4 rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #475569 0%, #1e293b 100%);">
+    <div class="card-body p-4 p-md-4 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div>
+            <h2 class="mb-1 fw-bold"><i class="fa-solid fa-gears me-2"></i>Pengaturan Global Perusahaan</h2>
+            <p class="mb-0 text-white-50 small">Kelola informasi perusahaan dan upload logo utama yang berlaku untuk seluruh proyek</p>
+        </div>
+        <div>
+            <a href="/" class="btn btn-outline-light fw-semibold px-3 py-2 rounded-pill">
+                <i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Dashboard
+            </a>
+        </div>
+    </div>
+</div> 
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+   {% if messages %}
+     {% for category, message in messages %}
+       <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+     {% endfor %}
+   {% endif %}
+{% endwith %} 
+
+<div class="row">
+    <!-- Kolom Form Informasi Perusahaan -->
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-building me-2 text-primary"></i>Informasi Utama Perusahaan</h5>
+            <form action="/pengaturan" method="POST" enctype="multipart/form-data">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Nama Kegiatan</label>
+                        <input type="text" class="form-control rounded-3" name="nama_kegiatan" value="{{ proyek.nama_kegiatan if proyek else '' }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Nama Proyek Utama / Perusahaan</label>
+                        <input type="text" class="form-control rounded-3" name="nama_proyek" value="{{ proyek.nama_proyek if proyek else '' }}" required>
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Penyedia Jasa (Kontraktor)</label>
+                        <input type="text" class="form-control rounded-3" name="penyedia_jasa" value="{{ proyek.penyedia_jasa if proyek else '' }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Konsultan Pengawas</label>
+                        <input type="text" class="form-control rounded-3" name="konsultan" value="{{ proyek.konsultan if proyek else '' }}" required>
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Pemilik Proyek (Owner)</label>
+                        <input type="text" class="form-control rounded-3" name="pemilik_proyek" value="{{ proyek.pemilik_proyek if proyek else '' }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">No. Kontrak</label>
+                        <input type="text" class="form-control rounded-3" name="no_kontrak" value="{{ proyek.no_kontrak if proyek else '' }}" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">Lokasi</label>
+                    <input type="text" class="form-control rounded-3" name="lokasi" value="{{ proyek.lokasi if proyek else '' }}" required>
+                </div>
+
+                <hr class="text-muted opacity-25 my-4">
+
+                <!-- Upload Logo Perusahaan -->
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-image me-2 text-primary"></i>Logo Perusahaan</h5>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">Pilih File Logo Baru (PNG/JPG)</label>
+                    <input type="file" class="form-control rounded-3" name="logo" accept=".png,.jpg,.jpeg">
+                </div>
+
+                <div class="text-end mt-4">
+                    <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow-sm">
+                        <i class="fa-solid fa-save me-1"></i> Simpan Pengaturan Global
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kolom Preview Logo Saat Ini -->
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow-sm border-0 rounded-4 p-4 bg-white text-center h-100">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-eye me-2 text-primary"></i>Logo Aktif Perusahaan</h5>
+            <div class="d-flex justify-content-center align-items-center p-4 bg-light rounded-4 border border-dashed mb-3" style="min-height: 200px;">
+                {% if proyek and proyek.logo_perusahaan %}
+                <img src="{{ url_for('static', filename='uploads/' + proyek.logo_perusahaan) }}" alt="Logo Perusahaan" class="img-fluid rounded shadow-sm" style="max-height: 140px; object-fit: contain;">
+                {% else %}
+                <div class="text-muted small">
+                    <i class="fa-solid fa-image fa-3x mb-2 text-secondary opacity-50"></i>
+                    <p class="mb-0">Belum ada logo perusahaan yang diupload.</p>
+                </div>
+                {% endif %}
+            </div>
+            <p class="text-muted small mb-0">Logo ini otomatis digunakan secara global pada seluruh laporan cetak di semua proyek.</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

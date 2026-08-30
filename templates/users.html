@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block title %}Manajemen User - Admin Panel{% endblock %}
+
+{% block content %}
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="card shadow-lg border-0 mb-4 rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge bg-warning text-dark mb-2 px-3 py-1 rounded-pill fw-bold">ADMIN PANEL</span>
+                <h2 class="mb-1 fw-bold"><i class="fa-solid fa-users-gear me-2"></i>Manajemen User</h2>
+                <p class="mb-0 text-white-50 small">Kelola akun user, persetujuan, dan role akses</p>
+            </div>
+            <div>
+                <a href="/hak_akses" class="btn btn-warning text-dark rounded-pill px-4 me-2 fw-bold">
+                    <i class="fa-solid fa-shield-halved me-1"></i> Hak Akses
+                </a>
+                <a href="/" class="btn btn-outline-light rounded-pill px-4">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Kembali
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+         {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+         {% endfor %}
+       {% endif %}
+    {% endwith %}
+
+    <!-- Stats Cards -->
+    {% set ns = namespace(pending=0, approved=0, rejected=0, admin_count=0, manager_count=0, user_count=0) %}
+    {% for u in users_list %}
+        {% if u.status == 'pending' %}{% set ns.pending = ns.pending + 1 %}{% endif %}
+        {% if u.status == 'approved' %}{% set ns.approved = ns.approved + 1 %}{% endif %}
+        {% if u.status == 'rejected' %}{% set ns.rejected = ns.rejected + 1 %}{% endif %}
+        {% if u.role == 'admin' %}{% set ns.admin_count = ns.admin_count + 1 %}{% endif %}
+        {% if u.role == 'manager' %}{% set ns.manager_count = ns.manager_count + 1 %}{% endif %}
+        {% if u.role == 'user' %}{% set ns.user_count = ns.user_count + 1 %}{% endif %}
+    {% endfor %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 bg-warning bg-opacity-10 rounded-4 p-3 text-center h-100">
+                <span class="text-warning fw-bold fs-3">{{ ns.pending }}</span>
+                <span class="text-muted small fw-bold">Menunggu Persetujuan</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-success bg-opacity-10 rounded-4 p-3 text-center h-100">
+                <span class="text-success fw-bold fs-3">{{ ns.approved }}</span>
+                <span class="text-muted small fw-bold">Disetujui (Active)</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-danger bg-opacity-10 rounded-4 p-3 text-center h-100">
+                <span class="text-danger fw-bold fs-3">{{ ns.rejected }}</span>
+                <span class="text-muted small fw-bold">Ditolak</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-primary bg-opacity-10 rounded-4 p-3 text-center h-100">
+                <span class="text-primary fw-bold fs-3">{{ users_list|length }}</span>
+                <span class="text-muted small fw-bold">Total User</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list me-2 text-primary"></i>Daftar Semua User</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-center" style="width:50px;">No</th>
+                        <th>Nama Lengkap</th>
+                        <th>Username</th>
+                        <th class="text-center">Role</th>
+                        <th class="text-center">Status</th>
+                        <th>Tanggal Daftar</th>
+                        <th class="text-center" style="width:250px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users_list %}
+                    <tr>
+                        <td class="text-center fw-bold">{{ loop.index }}</td>
+                        <td class="fw-semibold">{{ u.nama_lengkap }}</td>
+                        <td>
+                            <code class="bg-light px-2 py-1 rounded">{{ u.username }}</code>
+                            {% if u.username == session.username %}
+                            <span class="badge bg-info ms-1">Anda</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if u.role == 'admin' %}
+                            <span class="badge bg-danger px-3 py-1 rounded-pill fw-bold">Admin</span>
+                            {% elif u.role == 'manager' %}
+                            <span class="badge bg-primary px-3 py-1 rounded-pill fw-bold">Manager</span>
+                            {% else %}
+                            <span class="badge bg-secondary px-3 py-1 rounded-pill">User</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if u.status == 'approved' %}
+                            <span class="badge bg-success px-3 py-1 rounded-pill fw-bold"><i class="fa-solid fa-check me-1"></i>Approved</span>
+                            {% elif u.status == 'pending' %}
+                            <span class="badge bg-warning text-dark px-3 py-1 rounded-pill fw-bold"><i class="fa-solid fa-clock me-1"></i>Pending</span>
+                            {% else %}
+                            <span class="badge bg-danger px-3 py-1 rounded-pill fw-bold"><i class="fa-solid fa-xmark me-1"></i>Rejected</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ u.created_at.strftime('%d %b %Y %H:%M') if u.created_at else '-' }}</td>
+                        <td class="text-center">
+                            <!-- Approve (if pending) -->
+                            {% if u.status == 'pending' %}
+                            <form action="/users/approve/{{ u.id }}" method="POST" class="d-inline">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-success rounded-pill px-2 py-1 me-1" title="Setujui">
+                                    <i class="fa-solid fa-check"></i> Setujui
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            <!-- Reject (if not rejected) -->
+                            {% if u.status != 'rejected' %}
+                            <form action="/users/reject/{{ u.id }}" method="POST" class="d-inline">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-warning rounded-pill px-2 py-1 me-1" title="Tolak">
+                                    <i class="fa-solid fa-xmark"></i> Tolak
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            <!-- Change Role -->
+                            {% if u.username != session.username %}
+                            <form action="/users/edit_role/{{ u.id }}" method="POST" class="d-inline">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                <select name="new_role" class="form-select form-select-sm d-inline-block rounded-pill px-2 py-1 me-1" style="width: auto; font-size: 0.75rem;" onchange="this.form.submit()">
+                                    <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
+                                    <option value="manager" {% if u.role == 'manager' %}selected{% endif %}>Manager</option>
+                                    <option value="user" {% if u.role == 'user' %}selected{% endif %}>User</option>
+                                </select>
+                            </form>
+                            {% endif %}
+
+                            <!-- Delete -->
+                            {% if u.username != session.username %}
+                            <form action="/users/delete/{{ u.id }}" method="POST" class="d-inline">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1" title="Hapus" onclick="return confirm('Yakin ingin menghapus user {{ u.username }}?')">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">Belum ada user yang terdaftar.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Role Legend -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white mt-4">
+        <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-circle-info me-2 text-info"></i>Legenda Role &amp; Hak Akses</h6>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="p-3 bg-danger bg-opacity-10 rounded-3">
+                    <h6 class="fw-bold text-danger mb-1"><i class="fa-solid fa-crown me-1"></i> Admin</h6>
+                    <ul class="small mb-0 text-muted">
+                        <li>Kelola semua user (approve/reject/hapus/ubah role)</li>
+                        <li>Kelola semua proyek dan pengaturan</li>
+                        <li>Kelola anggaran pagu dan kategori budget</li>
+                        <li>Akses penuh ke seluruh fitur</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-primary bg-opacity-10 rounded-3">
+                    <h6 class="fw-bold text-primary mb-1"><i class="fa-solid fa-user-tie me-1"></i> Manager</h6>
+                    <ul class="small mb-0 text-muted">
+                        <li>Kelola proyek dan pengaturan proyek</li>
+                        <li>Buat & edit laporan harian</li>
+                        <li>Edit & hapus transaksi budget</li>
+                        <li>Kelola WBS</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-secondary bg-opacity-10 rounded-3">
+                    <h6 class="fw-bold text-secondary mb-1"><i class="fa-solid fa-user me-1"></i> User</h6>
+                    <ul class="small mb-0 text-muted">
+                        <li>View dashboard dan daftar proyek</li>
+                        <li>Buat laporan harian</li>
+                        <li>Upload dokumen</li>
+                        <li>View laporan weekly/monthly</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'base.html' %} 
+
+{% block title %}Daftar Kategori Biaya - {{ proyek.nama_proyek }}{% endblock %} 
+
+{% block content %} 
+<div class="container py-4">
+    <!-- Header Card -->
+    <div class="card shadow-lg border-0 mb-4 rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge bg-primary mb-2 px-3 py-1 rounded-pill fw-bold">MANAJEMEN KEUANGAN</span>
+                <h2 class="mb-1 fw-bold">Daftar Kategori Biaya Proyek</h2>
+                <p class="mb-0 text-white-50 small">{{ proyek.nama_proyek }}</p>
+            </div>
+            <div>
+                <a href="/workspace/{{ proyek.id }}" class="btn btn-outline-light rounded-pill px-4">Kembali ke Workspace</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel Daftar Kategori Biaya -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-list-check me-2 text-primary"></i>Kategori Biaya Aktif</h5>
+            <span class="badge bg-success px-3 py-2 rounded-pill">Total: {{ kategori_list|length }} Kategori</span>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 10%;">No</th>
+                        <th style="width: 70%;">Nama Kategori Biaya</th>
+                        <th style="width: 20%;" class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for kat in kategori_list %}
+                    <tr>
+                        <td class="fw-bold text-muted">{{ loop.index }}</td>
+                        <td>
+                            <span class="fw-semibold text-dark fs-6">{{ kat.nama_kategori }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill">Aktif</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-4">Belum ada kategori biaya yang terdaftar.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

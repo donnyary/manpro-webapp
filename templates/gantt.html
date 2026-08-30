@@ -1,0 +1,191 @@
+{% extends 'base.html' %} 
+
+{% block title %}Time Schedule & Kurva S - {{ proyek.nama_proyek }}{% endblock %} 
+
+{% block content %} 
+<div class="container py-4">
+    <!-- Header Card -->
+    <div class="card shadow-lg border-0 mb-4 rounded-4 text-white overflow-hidden no-print" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge bg-primary mb-2 px-3 py-1 rounded-pill fw-bold">TIME SCHEDULE & KURVA S</span>
+                <h2 class="mb-1 fw-bold">{{ proyek.nama_proyek }}</h2>
+                <p class="mb-0 text-white-50 small">Integrasi Barchart WBS, Histogram Mingguan, dan Grafik Kurva S Progres</p>
+            </div>
+            <div>
+                <a href="/workspace/{{ proyek.id }}" class="btn btn-outline-light rounded-pill px-4">Kembali ke Workspace</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tombol Kontrol -->
+    <div class="d-flex justify-content-end gap-2 mb-3 no-print">
+        <button class="btn btn-outline-secondary btn-sm shadow-sm px-3 rounded-pill" onclick="resetZoom()">
+            <i class="fa-solid fa-search-minus me-1"></i> Reset Zoom
+        </button>
+        <button class="btn btn-success btn-sm shadow-sm px-3 rounded-pill" onclick="window.print()">
+            <i class="fa-solid fa-print me-1"></i> Print A4 Landscape
+        </button>
+    </div>
+
+    <!-- TABEL TIME SCHEDULE (GANTT BARCHART) -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white mb-4">
+        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-table-list me-2 text-primary"></i>Time Schedule & Barchart WBS</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm align-middle text-center" style="font-size: 0.80rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th rowspan="2" class="align-middle">Kode</th>
+                        <th rowspan="2" class="align-middle text-start">Uraian Pekerjaan</th>
+                        <th rowspan="2" class="align-middle">Bobot (%)</th>
+                        <th colspan="{{ minggu_total }}">Bulan / Minggu Ke-</th>
+                    </tr>
+                    <tr>
+                        {% for i in range(1, minggu_total + 1) %}
+                        <th style="width: 35px; background: #f8f9fa;">M{{ i }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in wbs_data %}
+                    <tr>
+                        <td class="fw-bold text-muted">{{ item.kode_wbs }}</td>
+                        <td class="text-start fw-semibold">{{ item.nama_pekerjaan }}</td>
+                        <td>{{ item.bobot_persen }}</td>
+                        {% for i in range(1, minggu_total + 1) %}
+                            {% if i >= item.start_week and i < (item.start_week + item.duration) %}
+                                <td class="bg-primary text-white fw-bold" style="font-size: 0.70rem;" title="Mulai: M{{ item.start_week }}, Durasi: {{ item.duration }} Minggu">
+                                    {{ "%.2f"|format(item.bobot_persen / item.duration) }}
+                                </td>
+                            {% else %}
+                                <td></td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light fw-bold text-dark">
+                    <tr>
+                        <td colspan="2" class="text-end">Rencana Mingguan (%)</td>
+                        <td></td>
+                        {% for rm in rencana_mingguan %}
+                        <td class="text-secondary" style="font-size: 0.75rem;">{{ "%.2f"|format(rm) }}</td>
+                        {% endfor %}
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="text-end">Kumulatif Rencana (%)</td>
+                        <td>100.00</td>
+                        {% for rk in rencana %}
+                        <td class="text-success" style="font-size: 0.75rem;">{{ "%.2f"|format(rk) }}</td>
+                        {% endfor %}
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- Grafik Terintegrasi (Mixed Chart: Bar Rencana Mingguan & Kurva S Garis) -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white mb-4">
+        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-line me-2 text-primary"></i>Grafik Terintegrasi (Histogram & Kurva S)</h5>
+        <div style="height: 420px; position: relative;">
+            <canvas id="kurvaSChart"></canvas>
+        </div>
+        <div class="text-center mt-2 no-print">
+            <small class="text-muted"><i class="fa-solid fa-circle-info me-1"></i> *Histogram abu-abu menunjukkan bobot rencana mingguan, garis putus-putus hijau adalah kurva S rencana kumulatif, dan garis biru adalah realisasi aktual.</small>
+        </div>
+    </div>
+
+    <!-- Kotak Kesimpulan -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white border-start border-primary border-4">
+        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clipboard-check me-2 text-primary"></i>Kesimpulan & Evaluasi Proyek</h5>
+        <ul class="mb-0 text-secondary ps-3" style="line-height: 1.8;">
+            <li><strong>Penjadwalan (Time Schedule):</strong> Distribusi item pekerjaan diselesaikan dalam rentang waktu {{ minggu_total }} Minggu secara proporsional.</li>
+            <li><strong>Analisis Kinerja:</strong> Grafik gabungan menampilkan beban kerja per minggu (histogram) berdampingan langsung dengan progress kumulatif untuk memudahkan evaluasi deviasi proyek di lapangan.</li>
+        </ul>
+    </div>
+</div>
+
+<style>
+    @media print {
+        @page { size: A4 landscape; margin: 10mm; }
+        body { background-color: #ffffff !important; color: #000000 !important; }
+        .sidebar, .navbar, .no-print, header, footer { display: none !important; }
+        .card { border: 1px solid #dee2e6 !important; box-shadow: none !important; page-break-inside: avoid; margin-bottom: 15px !important; }
+        .container { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script>
+    const ctx = document.getElementById('kurvaSChart').getContext('2d');
+    const kurvaSChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ labels | safe }},
+            datasets: [
+                {
+                    type: 'bar', // Histogram beban kerja mingguan
+                    label: 'Rencana Mingguan (%)',
+                    data: {{ rencana_mingguan | safe }},
+                    backgroundColor: 'rgba(108, 117, 125, 0.25)',
+                    borderColor: '#6c757d',
+                    borderWidth: 1,
+                    yAxisID: 'y',
+                    order: 2
+                },
+                {
+                    type: 'line', // Garis Realisasi Aktual
+                    label: 'Realisasi Aktual (%)',
+                    data: {{ realisasi | safe }},
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.05)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.2,
+                    yAxisID: 'y',
+                    order: 1
+                },
+                {
+                    type: 'line', // Garis Kurva S Rencana Kumulatif
+                    label: 'Kumulatif Rencana (%)',
+                    data: {{ rencana | safe }},
+                    borderColor: '#198754',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    fill: false,
+                    tension: 0.2,
+                    yAxisID: 'y',
+                    order: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                zoom: {
+                    zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' },
+                    pan: { enabled: true, mode: 'xy' }
+                },
+                legend: { position: 'top', labels: { font: { size: 12, weight: 'bold' } } }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    max: 100, 
+                    title: { display: true, text: 'Prosentase (%)', font: { weight: 'bold' } } 
+                },
+                x: { 
+                    title: { display: true, text: 'Periode Waktu (Minggu)', font: { weight: 'bold' } } 
+                }
+            }
+        }
+    });
+
+    function resetZoom() {
+        kurvaSChart.resetZoom();
+    }
+</script>
+{% endblock %}

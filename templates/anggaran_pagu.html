@@ -1,0 +1,89 @@
+{% extends 'base.html' %} 
+
+{% block title %}Daftar Anggaran Pagu - {{ proyek.nama_proyek }}{% endblock %} 
+
+{% block content %} 
+
+<div class="project-header" style="background: linear-gradient(135deg, #0f766e, #14b8a6);">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="mb-1 fw-bold"><i class="fa-solid fa-list-check me-2"></i>Daftar Anggaran Pagu Proyek</h2>
+            <p class="mb-0 text-light opacity-75">Kelola alokasi anggaran pagu berdasarkan seluruh kategori biaya</p>
+        </div>
+        <div>
+            <a href="/budget/{{ proyek.id }}" class="btn btn-light text-teal fw-bold">
+                <i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Cost & Budget
+            </a>
+        </div>
+    </div>
+</div> 
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+   {% if messages %}
+     {% for category, message in messages %}
+       <div class="alert alert-{{ category }}">{{ message }}</div>
+     {% endfor %}
+   {% endif %}
+{% endwith %} 
+
+<div class="card shadow-sm border-0 rounded-3">
+    <div class="card-body">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-center" width="60">No.</th>
+                    <th>Kategori Biaya</th>
+                    <th>Anggaran Pagu</th>
+                    <th class="text-center" width="150">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in pagu_list %}
+                <tr>
+                    <td class="text-center fw-bold">{{ loop.index }}</td>
+                    <td><span class="badge bg-secondary p-2">{{ p.kategori }}</span></td>
+                    <td class="text-primary fw-bold">Rp {{ "{:,.0f}".format(p.anggaran_pagu) }}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-warning text-white" data-bs-toggle="modal" data-bs-target="#modalEditPagu{{ loop.index }}">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit Pagu
+                        </button>
+                    </td>
+                </tr>
+
+                <!-- Modal Edit Anggaran Pagu per Kategori -->
+                <div class="modal fade" id="modalEditPagu{{ loop.index }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form action="/edit_anggaran_pagu/{{ p.kategori }}/{{ proyek.id }}" method="POST">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                <div class="modal-header bg-warning text-white">
+                                    <h5 class="modal-title"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Anggaran Pagu - {{ p.kategori }}</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Kategori Biaya</label>
+                                        <input type="text" class="form-control" value="{{ p.kategori }}" readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Anggaran Pagu (Rp)</label>
+                                        <input type="number" step="any" class="form-control" name="anggaran_pagu" value="{{ p.anggaran_pagu }}" required>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-warning text-white">Simpan Perubahan</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <tr><td colspan="4" class="text-center text-muted py-4">Belum ada kategori biaya yang tersedia.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div> 
+
+{% endblock %}

@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block title %}Sesi Aktif Pengguna - Admin Panel{% endblock %}
+
+{% block content %}
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="card shadow-lg border-0 mb-4 rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge bg-warning text-dark mb-2 px-3 py-1 rounded-pill fw-bold">ADMIN PANEL</span>
+                <h2 class="mb-1 fw-bold"><i class="fa-solid fa-desktop me-2"></i>Sesi Aktif Pengguna</h2>
+                <p class="mb-0 text-white-50 small">Monitor siapa yang sedang login, dari perangkat apa, dan dari IP mana</p>
+            </div>
+            <div>
+                <a href="/users" class="btn btn-outline-light rounded-pill px-3 me-2">
+                    <i class="fa-solid fa-users-gear me-1"></i> User
+                </a>
+                <a href="/" class="btn btn-outline-light rounded-pill px-3">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Kembali
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+         {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+         {% endfor %}
+       {% endif %}
+    {% endwith %}
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 bg-success bg-opacity-10 rounded-4 p-3 text-center h-100">
+                <i class="fa-solid fa-circle text-success mb-2" style="font-size: 0.5rem;"></i>
+                <span class="text-success fw-bold fs-3">{{ online_users }}</span>
+                <span class="text-muted small fw-bold">User Online Saat Ini</span>
+                <span class="text-muted" style="font-size: 0.7rem;">dari {{ total_users }} total user</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-primary bg-opacity-10 rounded-4 p-3 text-center h-100">
+                <span class="text-primary fw-bold fs-3">{{ active_count }}</span>
+                <span class="text-muted small fw-bold">Sesi Aktif</span>
+                <span class="text-muted" style="font-size: 0.7rem;">perangkat yang terhubung</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-secondary bg-opacity-10 rounded-4 p-3 text-center h-100">
+                <span class="text-secondary fw-bold fs-3">{{ total_count }}</span>
+                <span class="text-muted small fw-bold">Total Sesi (All Time)</span>
+                <span class="text-muted" style="font-size: 0.7rem;">riwayat login</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 bg-danger bg-opacity-10 rounded-4 p-3 text-center h-100">
+                <form action="/active_sessions/kick_all" method="POST" class="d-inline"
+                      onsubmit="return confirm('Yakin ingin memaksa logout semua user lain?')">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold mb-2">
+                        <i class="fa-solid fa-bolt me-1"></i> Kick All
+                    </button>
+                </form>
+                <form action="/active_sessions/cleanup" method="POST" class="d-inline"
+                      onsubmit="return confirm('Hapus semua record sesi yang sudah tidak aktif?')">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
+                        <i class="fa-solid fa-broom me-1"></i> Cleanup
+                    </button>
+                </form>
+                <div class="mt-2"><span class="text-muted small fw-bold">Aksi Bulk</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sessions Table -->
+    <div class="card shadow-sm border-0 rounded-4 bg-white overflow-hidden">
+        <div class="card-header bg-white px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-list-check me-2 text-primary"></i>Daftar Sesi</h5>
+            <div>
+                <span class="badge bg-success bg-opacity-10 text-success px-3 py-1 rounded-pill fw-bold me-2">
+                    <i class="fa-solid fa-circle me-1" style="font-size: 0.5rem;"></i> {{ active_count }} Aktif
+                </span>
+                <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-1 rounded-pill fw-bold">
+                    {{ total_count - active_count }} Inaktif
+                </span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4 text-center" style="width: 40px;">No</th>
+                            <th>Status</th>
+                            <th>Nama / Username</th>
+                            <th>Role</th>
+                            <th><i class="fa-solid fa-globe me-1"></i> IP Address</th>
+                            <th><i class="fa-solid fa-laptop me-1"></i> Perangkat</th>
+                            <th><i class="fa-solid fa-window-maximize me-1"></i> Browser</th>
+                            <th><i class="fa-solid fa-microchip me-1"></i> OS</th>
+                            <th><i class="fa-solid fa-clock me-1"></i> Login Pada</th>
+                            <th><i class="fa-solid fa-arrow-right-arrow-left me-1"></i> Terakhir Aktif</th>
+                            <th class="text-center pe-4" style="width: 80px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sessions %}
+                        <tr class="{% if s.is_active %}table-success{% else %}text-muted{% endif %}">
+                            <td class="ps-4 text-center fw-bold">{{ loop.index }}</td>
+                            <td class="text-center">
+                                {% if s.is_active %}
+                                    <span class="badge bg-success rounded-pill px-2 py-1">
+                                        <i class="fa-solid fa-circle me-1" style="font-size: 0.45rem;"></i>Online
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary rounded-pill px-2 py-1">
+                                        <i class="fa-solid fa-circle me-1" style="font-size: 0.45rem;"></i>Offline
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-semibold">{{ s.nama_lengkap }}</div>
+                                <code class="small bg-light px-1 rounded">{{ s.username }}</code>
+                            </td>
+                            <td>
+                                {% if s.role == 'admin' %}
+                                <span class="badge bg-danger px-2 py-1 rounded-pill fw-bold">Admin</span>
+                                {% elif s.role == 'manager' %}
+                                <span class="badge bg-primary px-2 py-1 rounded-pill fw-bold">Manager</span>
+                                {% else %}
+                                <span class="badge bg-secondary px-2 py-1 rounded-pill">User</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <code class="bg-light px-2 py-1 rounded small">{{ s.ip_address or '-' }}</code>
+                            </td>
+                            <td>
+                                <span class="badge {% if s.device_type == 'Desktop' %}bg-info bg-opacity-10 text-info{% elif s.device_type == 'Mobile' %}bg-warning bg-opacity-10 text-warning{% else %}bg-purple bg-opacity-10 text-purple{% endif %} px-2 py-1 rounded-pill">
+                                    {% if s.device_type == 'Desktop' %}
+                                        <i class="fa-solid fa-desktop me-1"></i>
+                                    {% elif s.device_type == 'Mobile' %}
+                                        <i class="fa-solid fa-mobile-screen-button me-1"></i>
+                                    {% else %}
+                                        <i class="fa-solid fa-tablet-screen-button me-1"></i>
+                                    {% endif %}
+                                    {{ s.device_type or 'Unknown' }}
+                                </span>
+                            </td>
+                            <td class="small">{{ s.browser or 'Unknown' }}</td>
+                            <td class="small">{{ s.os or 'Unknown' }}</td>
+                            <td class="small">
+                                <span title="{{ s.login_at }}">{{ s.login_at.strftime('%d %b %Y %H:%M') if s.login_at else '-' }}</span>
+                            </td>
+                            <td class="small">
+                                <span title="{{ s.last_active }}">{{ s.last_active.strftime('%d %b %Y %H:%M') if s.last_active else '-' }}</span>
+                            </td>
+                            <td class="text-center pe-4">
+                                {% if s.is_active %}
+                                <form action="/active_sessions/kick/{{ s.id }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('Paksa logout sesi ini?')">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0" title="Force Logout">
+                                        <i class="fa-solid fa-right-from-bracket"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="11" class="text-center text-muted py-5">
+                                <i class="fa-solid fa-shield-halved fa-3x mb-3 d-block opacity-25"></i>
+                                <h6 class="fw-bold">Belum Ada Sesi Login Tercatat</h6>
+                                <p class="small">Sesi akan tercatat saat user melakukan login ke sistem.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% if sessions %}
+        <div class="card-footer bg-light px-4 py-2 text-muted small d-flex justify-content-between">
+            <span><i class="fa-solid fa-circle-info me-1"></i> Data sesi diperbarui secara real-time setiap kali halaman dimuat</span>
+            <span>Total: {{ total_count }} sesi</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .bg-purple { background-color: #8b5cf6 !important; }
+    .text-purple { color: #8b5cf6 !important; }
+</style>
+
+{% endblock %}

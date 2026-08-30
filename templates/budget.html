@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Cost & Budget - {{ proyek.nama_proyek }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header Banner Proyek -->
+    <div class="card shadow-lg border-0 mb-4 rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+        <div class="card-body p-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <span class="badge bg-success mb-2 px-3 py-1 rounded-pill fw-bold">COST & BUDGET MANAGEMENT</span>
+                <h2 class="mb-1 fw-bold">{{ proyek.nama_proyek }}</h2>
+                <p class="mb-0 text-white-50 small">Sistem Kelola Anggaran dan Pagu Proyek</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                {% if session.role == 'admin' %}
+                <a href="/anggaran_pagu/{{ proyek.id }}" class="btn btn-outline-light rounded-pill px-3 shadow-sm">
+                    <i class="fa-solid fa-calculator me-1"></i> Kelola Anggaran Pagu
+                </a>
+                {% endif %}
+                <a href="/transaksi_kas/{{ proyek.id }}" class="btn btn-primary rounded-pill px-3 shadow-sm">
+                    <i class="fa-solid fa-receipt me-1"></i> Transaksi Kas
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+         {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+         {% endfor %}
+       {% endif %}
+    {% endwith %}
+
+    <!-- Info Status Menu -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white text-center">
+        <div class="py-4">
+            <i class="fa-solid fa-calculator text-primary mb-3" style="font-size: 3rem;"></i>
+            <h4 class="fw-bold text-dark">Menu Cost & Budget Active</h4>
+            <p class="text-muted mb-3">Silakan gunakan tombol di atas untuk mengelola <strong>Anggaran Pagu</strong> atau mencatat <strong>Transaksi Kas</strong>.</p>
+            <div class="d-flex justify-content-center gap-2">
+                {% if session.role == 'admin' %}
+                <a href="/anggaran_pagu/{{ proyek.id }}" class="btn btn-outline-primary rounded-pill px-4">
+                    <i class="fa-solid fa-calculator me-1"></i> Kelola Anggaran Pagu
+                </a>
+                {% endif %}
+                <a href="/transaksi_kas/{{ proyek.id }}" class="btn btn-primary rounded-pill px-4">
+                    <i class="fa-solid fa-receipt me-1"></i> Kelola Transaksi Kas
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {# 
+    ===================================================================
+    DILANGKANKAN / DISEMBUNYIKAN SEMENTARA: RINGKASAN ANGGARAN & TRANSAKSI
+    ===================================================================
+
+    <!-- Metric Cards Ringkasan Biaya -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-primary border-4">
+                <div class="text-secondary small fw-bold">TOTAL PAGU ANGGARAN</div>
+                <div class="fs-4 fw-bold text-primary mt-1">Rp {{ "{:,.0f}".format(total_pagu or 0) }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-danger border-4">
+                <div class="text-secondary small fw-bold">TOTAL REALISASI BIAYA</div>
+                <div class="fs-4 fw-bold text-danger mt-1">Rp {{ "{:,.0f}".format(total_realisasi or 0) }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-success border-4">
+                <div class="text-secondary small fw-bold">SISA BUDGET</div>
+                <div class="fs-4 fw-bold text-success mt-1">Rp {{ "{:,.0f}".format(sisa_budget or 0) }}</div>
+            </div>
+        </div>
+    </div>
+    <!-- Bagian Tabel Master Kategori Biaya -->
+<div class="card shadow-sm border-0 rounded-4 p-4 bg-white mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-tags me-2"></i>Daftar Kategori Biaya</h5>
+        <button class="btn btn-sm btn-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#modalAddKategori">
+            <i class="fa-solid fa-plus me-1"></i> Tambah Kategori
+        </button>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 80px;">No</th>
+                    <th>Nama Kategori</th>
+                    <th class="text-center" style="width: 120px;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for k in kategori_list %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td class="fw-bold">{{ k.nama_kategori }}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-warning text-white py-0 px-2" data-bs-toggle="modal" data-bs-target="#modalEditKategori{{ k.id }}" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                        <a href="/delete_kategori_budget/{{ k.id }}/{{ proyek.id }}" class="btn btn-sm btn-danger py-0 px-2" onclick="return confirm('Hapus kategori ini?')" title="Hapus"><i class="fa-solid fa-trash"></i></a>
+                    </td>
+                </tr>
+
+                <!-- Modal Edit Kategori -->
+                <div class="modal fade" id="modalEditKategori{{ k.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 shadow rounded-4">
+                            <form action="/edit_kategori_budget/{{ k.id }}/{{ proyek.id }}" method="POST">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                <div class="modal-header bg-warning text-white">
+                                    <h6 class="modal-title fw-bold">Edit Kategori Biaya</h6>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body text-start">
+                                    <label class="form-label small fw-bold">Nama Kategori</label>
+                                    <input type="text" class="form-control rounded-3" name="nama_kategori" value="{{ k.nama_kategori }}" required>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Batal</button>
+                                    <button type="submit" class="btn btn-warning btn-sm text-white rounded-pill px-3">Simpan</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+    <!-- Tabel Rincian Budget Per Kategori -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-list-check me-2 text-primary"></i>Ringkasan Transaksi Budget</h5>
+            <a href="/transaksi_kas/{{ proyek.id }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Kelola Semua Transaksi Kas</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>No. Transaksi</th>
+                        <th>Tanggal</th>
+                        <th>Jenis Kas</th>
+                        <th>Kategori</th>
+                        <th>Uraian / Item</th>
+                        <th class="text-end">Jumlah / Realisasi</th>
+                        <th class="text-center" style="width: 120px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in budget_list %}
+                    <tr>
+                        <td class="fw-semibold text-primary">{{ b.no_transaksi or '-' }}</td>
+                        <td>{{ b.tanggal_transaksi or '-' }}</td>
+                        <td>
+                            {% if b.jenis_kas == 'masuk' %}
+                            <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">Kas Masuk</span>
+                            {% else %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1">Kas Keluar</span>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-secondary bg-opacity-10 text-dark px-2 py-1">{{ b.kategori }}</span></td>
+                        <td>{{ b.nama_item }}</td>
+                        <td class="text-end fw-bold text-danger">Rp {{ "{:,.0f}".format(b.realisasi_biaya or 0) }}</td>
+                        <td class="text-center">
+                            {% if session.role in ['admin', 'manager'] %}
+                            <button class="btn btn-sm btn-outline-warning rounded-pill px-2 me-1" data-bs-toggle="modal" data-bs-target="#modalEditBudget{{ b.id }}" title="Edit">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <a href="/delete_budget/{{ b.id }}/{{ proyek.id }}" class="btn btn-sm btn-outline-danger rounded-pill px-2" onclick="return confirm('Hapus transaksi ini?')" title="Hapus">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                            {% else %}
+                            <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">Belum ada data anggaran budget yang ditambahkan.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    #}
+</div>
+{% endblock %}

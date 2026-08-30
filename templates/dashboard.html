@@ -1,0 +1,139 @@
+{% extends 'base.html' %} 
+
+{% block title %}Sistem Manajemen Proyek Terpadu - Daftar Proyek Aktif{% endblock %} 
+
+{% block content %} 
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-1 text-dark"><i class="fa-solid fa-building-shield me-2 text-primary"></i>Sistem Manajemen Proyek Terpadu</h2>
+            <p class="text-muted mb-0">Daftar Proyek Aktif dan Monitoring Lapangan</p>
+        </div>
+        <div>
+            {% if has_menu_access('pengaturan') %}
+            <button class="btn btn-primary fw-semibold rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddProject">
+                <i class="fa-solid fa-plus-circle me-1"></i> Tambah Proyek Baru
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+         {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3" role="alert">
+               {{ message }}
+               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+           </div>
+         {% endfor %}
+       {% endif %}
+    {% endwith %} 
+
+    <div class="row g-4">
+        {% for p in proyek_list %}
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 p-3 bg-white position-relative overflow-hidden">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-2">{{ p.nama_proyek }}</h5>
+                        <p class="text-muted small mb-3"><i class="fa-solid fa-location-dot me-1 text-danger"></i>{{ p.lokasi if p.lokasi else 'Lokasi belum diatur' }}</p>
+                        
+                        <hr class="text-muted opacity-25 my-2">
+                        
+                        <div class="small mb-3">
+                            <div class="mb-1"><strong>Pemilik (Owner):</strong> {{ p.pemilik_proyek if p.pemilik_proyek else '-' }}</div>
+                            <div><strong>Mulai:</strong> {{ p.tgl_mulai if p.tgl_mulai else '-' }}</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <a href="/pengaturan_proyek/{{ p.id }}" class="btn btn-outline-secondary w-100 fw-semibold rounded-pill mb-2 shadow-sm py-2">
+                            <i class="fa-solid fa-gear me-1"></i> Pengaturan Proyek
+                        </a>
+                        <a href="/workspace/{{ p.id }}" class="btn btn-primary w-100 fw-semibold rounded-pill shadow-sm py-2">
+                            <i class="fa-solid fa-folder-open me-1"></i> Masuk Workspace / History
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+                <div class="text-muted py-4">
+                    <i class="fa-solid fa-folder-open fa-3x mb-3 text-secondary opacity-50"></i>
+                    <h5 class="fw-bold">Belum Ada Proyek Aktif</h5>
+                    <p class="small mb-3">Silakan tambahkan proyek baru untuk mulai menggunakan sistem manajemen terpadu.</p>
+                    <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#modalAddProject">
+                        Tambah Proyek Baru
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- MODAL: TAMBAH PROYEK BARU -->
+<div class="modal fade" id="modalAddProject" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form action="/add_project" method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header bg-primary text-white px-4 py-3 rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-plus-circle me-2"></i>Tambah Proyek Baru</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Nama Kegiatan</label>
+                            <input type="text" class="form-control rounded-3" name="nama_kegiatan" placeholder="Contoh: Pembangunan Gedung..." required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Nama Proyek</label>
+                            <input type="text" class="form-control rounded-3" name="nama_proyek" placeholder="Contoh: Gedung Kuliah 5 Lantai" required>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Penyedia Jasa (Kontraktor)</label>
+                            <input type="text" class="form-control rounded-3" name="penyedia_jasa" placeholder="PT. ... " required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Konsultan Pengawas</label>
+                            <input type="text" class="form-control rounded-3" name="konsultan" placeholder="PT. ... " required>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Pemilik Proyek (Owner)</label>
+                            <input type="text" class="form-control rounded-3" name="pemilik_proyek" placeholder="Instansi / Perusahaan..." required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">No. Kontrak</label>
+                            <input type="text" class="form-control rounded-3" name="no_kontrak" placeholder="Nomor Kontrak Kerja..." required>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Lokasi Proyek</label>
+                            <input type="text" class="form-control rounded-3" name="lokasi" placeholder="Lokasi pekerjaan..." required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Tanggal Mulai</label>
+                            <input type="date" class="form-control rounded-3" name="tgl_mulai" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer px-4 py-3 bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-outline-secondary px-4 rounded-pill" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary px-4 rounded-pill shadow-sm">Simpan Proyek</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

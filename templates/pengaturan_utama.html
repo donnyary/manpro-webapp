@@ -1,0 +1,78 @@
+{% extends 'base.html' %} 
+
+{% block title %}Pengaturan Utama - Perusahaan Kontraktor{% endblock %} 
+
+{% block content %} 
+
+<div class="card shadow-lg border-0 mb-4 rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+    <div class="card-body p-4 p-md-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="mb-1 fw-bold"><i class="fa-solid fa-building-shield me-2"></i>Pengaturan Utama Perusahaan Kontraktor</h2>
+            <p class="mb-0 text-white-50 small">Kelola profil nama perusahaan, alamat, No. telp, dan logo utama kontraktor pelaksana</p>
+        </div>
+        <div>
+            <a href="/" class="btn btn-outline-light rounded-pill px-4">Dashboard Utama</a>
+        </div>
+    </div>
+</div> 
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+   {% if messages %}
+     {% for category, message in messages %}
+       <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+     {% endfor %}
+   {% endif %}
+{% endwith %} 
+
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-briefcase me-2 text-primary"></i>Profil Kontraktor & Pelaksana</h5>
+            <form action="/pengaturan" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">Nama Perusahaan Kontraktor</label>
+                    <input type="text" class="form-control rounded-3" name="penyedia_jasa" value="{{ proyek.penyedia_jasa if proyek else '' }}" placeholder="Contoh: PT. Adhi Karya (Persero) Tbk..." required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">Alamat Perusahaan</label>
+                    <textarea class="form-control rounded-3" name="alamat_kontraktor" rows="3" placeholder="Alamat lengkap kantor kontraktor..." required>{{ proyek.alamat_kontraktor if proyek and proyek.alamat_kontraktor else '' }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">No. Telepon / Kontak</label>
+                    <input type="text" class="form-control rounded-3" name="telp_kontraktor" value="{{ proyek.telp_kontraktor if proyek and proyek.telp_kontraktor else '' }}" placeholder="Contoh: 021-xxxxxxx / 0812..." required>
+                </div>
+
+                <hr class="my-4 text-muted opacity-25">
+
+                <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-image me-2 text-primary"></i>Logo Resmi Kontraktor</h5>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-secondary">Upload File Logo Kontraktor (PNG/JPG)</label>
+                    <input type="file" class="form-control rounded-3" name="logo" accept=".png,.jpg,.jpeg">
+                    <small class="text-muted">Format: PNG, JPG, JPEG | Maks: 10MB</small>
+                </div>
+
+                <div class="text-end mt-4">
+                    <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill fw-semibold shadow-sm">
+                        <i class="fa-solid fa-save me-1"></i> Simpan Pengaturan Kontraktor
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow-sm border-0 rounded-4 p-4 bg-white text-center h-100">
+            <h5 class="fw-bold text-dark mb-3">Logo Kontraktor Aktif</h5>
+            <div class="d-flex justify-content-center align-items-center p-4 bg-light rounded-4 border border-dashed mb-3" style="min-height: 200px;">
+                {% if proyek and proyek.logo_perusahaan %}
+                <img src="{{ url_for('static', filename='uploads/' + proyek.logo_perusahaan) }}" alt="Logo Kontraktor" class="img-fluid rounded shadow-sm" style="max-height: 140px; object-fit: contain;">
+                {% else %}
+                <span class="text-muted small">Belum ada logo kontraktor.</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

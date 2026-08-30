@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petty Cash - {{ company.nama_perusahaan if company else 'PMIS L99' }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f6f9; overflow-x: hidden; }
+        #sidebar { width: 260px; position: fixed; top: 0; left: 0; height: 100vh; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); color: #fff; padding-top: 15px; z-index: 100; overflow-y: auto; }
+        #sidebar .brand { color: #fff; font-weight: 800; font-size: 1rem; padding: 12px 18px; display: block; border-bottom: 1px solid #334155; margin-bottom: 10px; text-decoration: none; }
+        #sidebar .brand i { color: #60a5fa; }
+        #sidebar .section-label { padding: 8px 18px 4px; font-size: 0.65rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        #sidebar a.menu-item { padding: 10px 18px; font-size: 0.85rem; color: #cbd5e1; display: block; text-decoration: none; transition: 0.2s; border-left: 3px solid transparent; }
+        #sidebar a.menu-item:hover, #sidebar a.menu-item.active { background: rgba(37, 99, 235, 0.2); color: #fff; border-left-color: #60a5fa; }
+        #sidebar a.menu-item i { width: 22px; text-align: center; margin-right: 6px; }
+        #sidebar .divider { border-top: 1px solid #334155; margin: 8px 18px; }
+        #sidebar .user-box { padding: 12px 18px; border-top: 1px solid #334155; position: absolute; bottom: 0; width: 100%; background: #0f172a; }
+        #sidebar .user-box a { color: #94a3b8; text-decoration: none; font-size: 0.85rem; }
+        #sidebar .user-box a:hover { color: #fff; }
+        #content { margin-left: 260px; padding: 25px; }
+        .header-banner { background: linear-gradient(135deg, #065f46, #10b981); color: white; padding: 25px 30px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+    </style>
+</head>
+<body>
+<div id="sidebar">
+    <a href="/" class="brand"><i class="fa-solid fa-arrow-left me-2"></i> Dashboard Utama</a>
+    <div class="section-label">Petty Cash</div>
+    <a href="{{ url_for('petty_cash_index') }}" class="menu-item active"><i class="fa-solid fa-wallet"></i> Dashboard Kas</a>
+    <a href="{{ url_for('cetak_laporan_pc') }}" class="menu-item"><i class="fa-solid fa-print"></i> Cetak Laporan</a>
+    <a href="{{ url_for('cetak_laporan_project') }}" class="menu-item"><i class="fa-solid fa-chart-column"></i> Laporan Proyek</a>
+    <div class="divider"></div>
+    <div class="section-label">Menu Lain</div>
+    <a href="/" class="menu-item"><i class="fa-solid fa-folder-open"></i> Daftar Proyek</a>
+    {% if session.get('role') == 'admin' %}
+    <a href="{{ url_for('manage_users') }}" class="menu-item"><i class="fa-solid fa-users-gear"></i> Kelola User</a>
+    {% endif %}
+    <div class="user-box">
+        <div class="d-flex align-items-center">
+            <i class="fa-solid fa-circle-user fs-4 me-2 text-secondary"></i>
+            <div><div class="fw-bold small">{{ session.get('nama_lengkap', 'User') }}</div><small class="text-muted">{{ session.get('role', 'user') | upper }}</small></div>
+            <a href="{{ url_for('logout') }}" class="ms-auto text-danger" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></a>
+        </div>
+    </div>
+</div>
+<div id="content">
+    <div class="header-banner">
+        <div class="d-flex justify-content-between align-items-center">
+            <div><h2 class="mb-1 fw-bold"><i class="fa-solid fa-wallet me-2"></i>Dashboard Petty Cash</h2><p class="mb-0 text-light opacity-75">{{ company.nama_perusahaan if company else '' }}</p></div>
+            <button class="btn btn-light text-success fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#tambahTransaksiModal"><i class="fa-solid fa-plus me-2"></i> Tambah Transaksi</button>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for cat, msg in messages %}<div class="alert alert-{{ cat }} alert-dismissible fade show"><button type="button" class="btn-close" data-bs-dismiss="alert"></button>{{ msg }}</div>{% endfor %}{% endif %}{% endwith %}
+
+    <!-- Summary Cards -->
+    <div class="row text-white mb-4">
+        <div class="col-md-4 mb-3"><div class="card bg-success shadow-sm h-100"><div class="card-body"><h6 class="card-title text-uppercase fw-bold">Total Kas Masuk</h6><h3 class="fw-bold">{{ total_masuk | currency }}</h3></div></div></div>
+        <div class="col-md-4 mb-3"><div class="card bg-danger shadow-sm h-100"><div class="card-body"><h6 class="card-title text-uppercase fw-bold">Total Kas Keluar</h6><h3 class="fw-bold">{{ total_keluar | currency }}</h3></div></div></div>
+        <div class="col-md-4 mb-3"><div class="card bg-primary shadow-sm h-100"><div class="card-body"><h6 class="card-title text-uppercase fw-bold">Saldo Akhir</h6><h3 class="fw-bold">{{ saldo | currency }}</h3></div></div></div>
+    </div>
+
+    <!-- Filter -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('petty_cash_index') }}" class="row g-3 align-items-end">
+                <div class="col-lg-2 col-md-4"><label class="form-label fw-bold small text-muted">Dari Tanggal</label><input type="date" class="form-control" name="tgl_awal" value="{{ tgl_awal }}"></div>
+                <div class="col-lg-2 col-md-4"><label class="form-label fw-bold small text-muted">Sampai Tanggal</label><input type="date" class="form-control" name="tgl_akhir" value="{{ tgl_akhir }}"></div>
+                <div class="col-lg-2 col-md-4"><label class="form-label fw-bold small text-muted">Kategori Biaya</label>
+                    <select class="form-select" name="kategori"><option value="">-- Semua --</option>{% for k in kategori_list %}<option value="{{ k.nama_kategori }}" {% if kategori_selected == k.nama_kategori %}selected{% endif %}>{{ k.nama_kategori }}</option>{% endfor %}</select>
+                </div>
+                <div class="col-lg-6 col-md-12">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-secondary"><i class="fa-solid fa-filter me-1"></i>Filter</button>
+                        <a href="{{ url_for('petty_cash_index') }}" class="btn btn-outline-secondary"><i class="fa-solid fa-rotate me-1"></i>Reset</a>
+                        <a href="{{ url_for('cetak_laporan_pc', tgl_awal=tgl_awal, tgl_akhir=tgl_akhir, kategori=kategori_selected) }}" target="_blank" class="btn btn-dark"><i class="fa-solid fa-print me-1"></i>Cetak</a>
+                        <a href="{{ url_for('cetak_laporan_project') }}" class="btn btn-info text-white fw-semibold"><i class="fa-solid fa-chart-column me-1"></i>Laporan Proyek</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabel Transaksi -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr><th>No. Transaksi</th><th>Tanggal</th><th>Jenis</th><th>Rincian Item &amp; Kategori</th><th class="text-end">Total</th><th class="text-center">Pembuat</th><th class="text-center">Aksi</th></tr>
+                    </thead>
+                    <tbody>
+                        {% if transaksi %}
+                            {% for t in transaksi %}
+                            <tr>
+                                <td class="fw-bold">{{ t.no_transaksi }}</td>
+                                <td><small>{{ t.tanggal }}</small></td>
+                                <td>{% if t.jenis == 'masuk' %}<span class="badge bg-success">MASUK</span>{% else %}<span class="badge bg-danger">KELUAR</span>{% endif %}</td>
+                                <td>
+                                    <ul class="list-unstyled mb-0 small">
+                                        {% for item in t.rincian_item %}
+                                        <li class="border-bottom py-1">
+                                            <strong>{{ item.keterangan_item }}</strong> (Qty: {{ item.kuantitas }} x {{ item.harga_satuan | currency }} = <strong class="text-primary">{{ item.subtotal | currency }}</strong>)
+                                            <br><span class="text-muted">Proj: <strong>{{ item.project if item.project else '-' }}</strong> | Kat: <strong>{{ item.kategori if item.kategori else '-' }}</strong></span>
+                                            {% if item.lampiran %}<a href="{{ url_for('uploaded_file', filename=item.lampiran) }}" target="_blank" class="ms-1 badge bg-info text-dark text-decoration-none"><i class="fa-solid fa-paperclip"></i> File</a>{% endif %}
+                                        </li>
+                                        {% endfor %}
+                                    </ul>
+                                </td>
+                                <td class="text-end fw-bold">{{ t.total_transaksi | currency }}</td>
+                                <td class="text-center"><small>{{ t.pembuat }}</small></td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('edit_transaksi', id=t.id) }}" class="btn btn-warning btn-sm" title="Edit"><i class="fa-solid fa-pen-to-square"></i></a>
+                                    {% if session.role == 'admin' %}
+                                    <form action="{{ url_for('hapus_transaksi', id=t.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus transaksi ini?')"><button type="submit" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button></form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="7" class="text-center py-4 text-muted">Belum ada data transaksi.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: TAMBAH TRANSAKSI -->
+<div class="modal fade" id="tambahTransaksiModal" tabindex="-1"><div class="modal-dialog modal-xl"><div class="modal-content">
+    <form action="{{ url_for('tambah_transaksi') }}" method="POST" enctype="multipart/form-data">
+        <div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="fa-solid fa-plus-circle me-2"></i>Form Transaksi Baru</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-4"><label class="form-label fw-bold">No. Transaksi</label><input type="text" class="form-control" name="no_transaksi" id="no_transaksi" placeholder="Contoh: TRX-001" required><small id="cek-transaksi" class="text-danger fw-bold mt-1 d-block"></small></div>
+                <div class="col-md-4"><label class="form-label fw-bold">Tanggal</label><input type="date" class="form-control" name="tanggal_transaksi" value="{{ today_date }}" required></div>
+                <div class="col-md-4"><label class="form-label fw-bold">Jenis Kas</label><select class="form-select" name="jenis" required><option value="keluar">Kas Keluar</option><option value="masuk">Kas Masuk</option></select></div>
+            </div>
+            <hr>
+            <h6 class="fw-bold text-secondary mb-3">Rincian Item Transaksi</h6>
+            <div id="item-container">
+                <div class="row g-2 item-row mb-2 align-items-center border-bottom pb-2">
+                    <div class="col-md-2"><input type="text" class="form-control form-control-sm" name="keterangan[]" placeholder="Keterangan..." required></div>
+                    <div class="col-md-2"><select class="form-select form-select-sm" name="project[]"><option value="">-- Project --</option>{% for p in project_list %}<option value="{{ p.nama_project }}">{{ p.nama_project }}</option>{% endfor %}</select></div>
+                    <div class="col-md-2"><select class="form-select form-select-sm" name="kategori_item[]"><option value="">-- Kategori --</option>{% for k in kategori_list %}<option value="{{ k.nama_kategori }}">{{ k.nama_kategori }}</option>{% endfor %}</select></div>
+                    <div class="col-md-1"><input type="number" class="form-control form-control-sm item-qty" name="kuantitas[]" value="1" min="1" required></div>
+                    <div class="col-md-2"><input type="number" step="any" class="form-control form-control-sm item-price" name="harga_satuan[]" placeholder="Harga Satuan" required></div>
+                    <div class="col-md-1 text-center"><span class="small fw-bold text-success item-subtotal">Rp 0</span></div>
+                    <div class="col-md-1"><input type="file" class="form-control form-control-sm" name="lampiran_item[]" accept=".png,.jpg,.jpeg,.pdf"></div>
+                    <div class="col-md-1 text-center"><button type="button" class="btn btn-danger btn-sm remove-item" disabled><i class="fa-solid fa-trash"></i></button></div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-success btn-sm mt-2" id="addItemBtn"><i class="fa-solid fa-plus me-1"></i>Tambah Baris</button>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button><button type="submit" class="btn btn-primary" id="btn-submit">Simpan Transaksi</button></div>
+    </form>
+</div></div></div>
+
+<!-- MODAL: PENGATURAN -->
+<div class="modal fade" id="settingsModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content">
+    <form action="{{ url_for('save_settings') }}" method="POST" enctype="multipart/form-data">
+        <div class="modal-header bg-dark text-white"><h5 class="modal-title"><i class="fa-solid fa-gear me-2"></i>Pengaturan Sistem & Master Data</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <h6 class="text-primary fw-bold mb-3">1. Informasi Perusahaan</h6>
+            <div class="mb-3"><label class="form-label fw-bold">Nama Perusahaan</label><input type="text" class="form-control" name="nama_perusahaan" value="{{ company.nama_perusahaan if company else '' }}" required></div>
+            <div class="mb-3"><label class="form-label fw-bold">Alamat</label><textarea class="form-control" name="alamat_perusahaan" rows="2" required>{{ company.alamat_perusahaan if company else '' }}</textarea></div>
+            <div class="mb-3"><label class="form-label fw-bold">Telepon</label><input type="text" class="form-control" name="telepon_perusahaan" value="{{ company.telepon_perusahaan if company else '' }}" required></div>
+            <div class="mb-3"><label class="form-label fw-bold">Logo Perusahaan</label><input type="file" class="form-control" name="logo_perusahaan" accept="image/*"></div>
+            <hr class="my-4">
+            <h6 class="text-primary fw-bold mb-3">2. Kelola Kategori Biaya <small class="text-muted">(Juga digunakan di Cost Budget)</small></h6>
+            <div class="mb-3"><input type="text" class="form-control" name="kategori_baru" placeholder="Kategori biaya baru..."></div>
+            <div class="table-responsive mb-3" style="max-height: 180px; overflow-y: auto;">
+                <table class="table table-sm table-bordered align-middle">
+                    <thead><tr class="table-light"><th>Nama Kategori</th><th width="120" class="text-center">Aksi</th></tr></thead>
+                    <tbody>
+                        {% for kat in kategori_list %}
+                        <tr>
+                            <td><form action="{{ url_for('edit_kategori', kat_id=kat.id) }}" method="POST" id="form-kat-{{ kat.id }}"><input type="text" class="form-control form-control-sm" name="nama_kategori_{{ kat.id }}" value="{{ kat.nama_kategori }}" required></form></td>
+                            <td class="text-center text-nowrap"><button type="submit" form="form-kat-{{ kat.id }}" class="btn btn-success btn-sm"><i class="fa-solid fa-check"></i></button>
+                            <form action="{{ url_for('delete_kategori', kat_id=kat.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus kategori ini?')"><button type="submit" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button></form></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <hr class="my-4">
+            <h6 class="text-primary fw-bold mb-3">3. Kelola Nama Project</h6>
+            <div class="row g-2 mb-3"><div class="col-md-7"><input type="text" class="form-control" name="project_baru" placeholder="Nama Project Baru..."></div><div class="col-md-5"><input type="text" class="form-control" name="contract_no_baru" placeholder="No. Kontrak..."></div></div>
+            <div class="table-responsive" style="max-height: 180px; overflow-y: auto;">
+                <table class="table table-sm table-bordered align-middle">
+                    <thead><tr class="table-light"><th>Nama Project</th><th>No. Kontrak</th><th width="120" class="text-center">Aksi</th></tr></thead>
+                    <tbody>
+                        {% for proj in project_list %}
+                        <tr>
+                            <td colspan="2"><form action="{{ url_for('edit_project', proj_id=proj.id) }}" method="POST" id="form-proj-{{ proj.id }}"><div class="row g-1"><div class="col-md-7"><input type="text" class="form-control form-control-sm" name="nama_project_{{ proj.id }}" value="{{ proj.nama_project }}" required></div><div class="col-md-5"><input type="text" class="form-control form-control-sm" name="contract_no_{{ proj.id }}" value="{{ proj.contract_no if proj.contract_no else '' }}"></div></div></form></td>
+                            <td class="text-center text-nowrap"><button type="submit" form="form-proj-{{ proj.id }}" class="btn btn-success btn-sm"><i class="fa-solid fa-check"></i></button>
+                            <form action="{{ url_for('delete_project_settings', proj_id=proj.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus?')"><button type="submit" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button></form></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <hr class="my-4">
+            <h6 class="text-danger fw-bold mb-3"><i class="fa-solid fa-database me-2"></i>4. Backup &amp; Restore Database</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="border rounded p-3 bg-light">
+                        <h6 class="fw-bold"><i class="fa-solid fa-download me-1 text-success"></i> Backup Database</h6>
+                        <p class="small text-muted mb-2">Buat salinan database saat ini.</p>
+                        <form action="/backup" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-success btn-sm"><i class="fa-solid fa-download me-1"></i> Backup Sekarang</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="border rounded p-3 bg-light">
+                        <h6 class="fw-bold"><i class="fa-solid fa-upload me-1 text-warning"></i> Restore Database</h6>
+                        <p class="small text-muted mb-2">Pulihkan dari file backup (.db).</p>
+                        <form action="/restore" method="POST" enctype="multipart/form-data" class="d-inline">
+                            <div class="input-group input-group-sm">
+                                <input type="file" class="form-control" name="restore_file" accept=".db" required>
+                                <button type="submit" class="btn btn-warning" onclick="return confirm('Yakin restore? Data saat ini akan ditimpa!')"><i class="fa-solid fa-upload me-1"></i> Restore</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3"><h6 class="fw-bold small text-muted"><i class="fa-solid fa-list me-1"></i> Daftar Backup:</h6><div id="backup-list-pc" class="small text-muted">Memuat...</div></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button><button type="submit" class="btn btn-primary">Simpan Perubahan</button></div>
+    </form>
+</div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const existingTransactions = [{% for t in transaksi %}"{{ t.no_transaksi }}",{% endfor %}];
+    const inputNo = document.getElementById('no_transaksi');
+    const msg = document.getElementById('cek-transaksi');
+    const submitBtn = document.getElementById('btn-submit');
+    const lastNo = "{{ last_no }}";
+    if(inputNo){
+        inputNo.addEventListener('focus',function(){if(!this.value)this.setCustomValidity("No. Transaksi Terakhir: "+lastNo);});
+        inputNo.addEventListener('input',function(){this.setCustomValidity('');const v=this.value.trim();if(v!==""&&existingTransactions.includes(v)){msg.textContent="No Transaksi sudah ada!";inputNo.classList.add('is-invalid');if(submitBtn)submitBtn.disabled=true;}else{msg.textContent="";inputNo.classList.remove('is-invalid');if(submitBtn)submitBtn.disabled=false;}});
+    }
+    document.addEventListener('DOMContentLoaded',function(){
+        if(window.location.hash==='#settingsModal'){const m=new bootstrap.Modal(document.getElementById('settingsModal'));m.show();}
+    function loadBackupsPC(){
+        fetch('/backup/list').then(r=>r.json()).then(data=>{
+            const el=document.getElementById('backup-list-pc');
+            if(!data.backups||data.backups.length===0){el.innerHTML='<span class="text-muted">Belum ada backup.</span>';return;}
+            let html='<div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead class="table-light"><tr><th>File</th><th>Ukuran</th><th class="text-center">Aksi</th></tr></thead><tbody>';
+            data.backups.forEach(b=>{
+                html+='<tr><td><code>'+b.filename+'</code></td><td>'+b.size+' KB</td><td class="text-center text-nowrap">';
+                html+='<a href="/backup/download/'+b.filename+'" class="btn btn-sm btn-outline-success" title="Download"><i class="fa-solid fa-download"></i></a> ';
+                html+='<form action="/backup/delete/'+b.filename+'" method="POST" class="d-inline" onsubmit="return confirm(\'Hapus?\')"><button type="submit" class="btn btn-sm btn-outline-danger" title="Hapus"><i class="fa-solid fa-trash"></i></button></form>';
+                html+='</td></tr>';
+            });
+            html+='</tbody></table></div>';
+            el.innerHTML=html;
+        }).catch(()=>{});
+    }
+    const smPC=document.getElementById('settingsModal');
+    if(smPC)smPC.addEventListener('shown.bs.modal',loadBackupsPC);
+        const c=document.getElementById('item-container'),b=document.getElementById('addItemBtn');
+        function upd(r){const q=parseFloat(r.querySelector('.item-qty').value)||0,p=parseFloat(r.querySelector('.item-price').value)||0;r.querySelector('.item-subtotal').textContent='Rp '+(q*p).toLocaleString('id-ID');}
+        function tog(){c.querySelectorAll('.item-row').forEach(r=>{r.querySelector('.remove-item').disabled=(c.querySelectorAll('.item-row').length===1);});}
+        if(c){c.addEventListener('input',e=>{if(e.target.classList.contains('item-qty')||e.target.classList.contains('item-price'))upd(e.target.closest('.item-row'));});c.addEventListener('click',e=>{const rm=e.target.closest('.remove-item');if(rm&&c.querySelectorAll('.item-row').length>1){rm.closest('.item-row').remove();tog();}});}
+        if(b){b.addEventListener('click',function(){const f=c.querySelector('.item-row');if(f){const n=f.cloneNode(true);n.querySelectorAll('input').forEach(i=>{i.type==='file'?i.value='':i.type==='number'&&i.classList.contains('item-qty')?i.value='1':i.value='';});n.querySelectorAll('select').forEach(s=>s.value='');n.querySelector('.item-subtotal').textContent='Rp 0';c.appendChild(n);tog();}});}
+    });
+</script>
+</body>
+</html>

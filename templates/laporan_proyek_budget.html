@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Rekapitulasi Anggaran & Realisasi - {{ proyek.nama_proyek }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-4">
+    <!-- Header Navigasi & Proyek Switcher -->
+    <div class="row align-items-center mb-4">
+        <div class="col-md-7">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="/budget/{{ proyek.id }}" class="btn btn-outline-secondary btn-sm rounded-3 shadow-sm d-flex align-items-center gap-1">
+                    <i class="fa-solid fa-arrow-left"></i> Kembali
+                </a>
+                <h4 class="fw-bold text-dark mb-0"><i class="fa-solid fa-chart-pie text-primary me-2"></i>Rekapitulasi Anggaran & Realisasi Biaya</h4>
+            </div>
+            <p class="text-muted small mb-0 ms-5">Proyek Aktif: <span class="fw-semibold text-dark">{{ proyek.nama_proyek }}</span></p>
+        </div>
+        <div class="col-md-5 d-flex justify-content-md-end gap-2 mt-3 mt-md-0">
+            <select class="form-select form-select-sm rounded-3 shadow-sm border-light bg-light fw-medium" style="max-width: 240px;" onchange="if(this.value) window.location.href='/laporan_proyek_budget/' + this.value">
+                {% for p in proyek_list %}
+                <option value="{{ p.id }}" {% if p.id == proyek.id %}selected{% endif %}>{{ p.nama_proyek }}</option>
+                {% endfor %}
+            </select>
+            <a href="/cetak_laporan_proyek_budget/{{ proyek.id }}" target="_blank" class="btn btn-dark btn-sm rounded-3 px-3 shadow-sm d-flex align-items-center gap-1">
+                <i class="fa-solid fa-print"></i> Cetak
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabel Rekapitulasi Modern -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="card-body p-0">
+            <div class="table-responsive m-0">
+                <table class="table table-hover align-middle text-center mb-0 table-custom">
+                    <thead class="bg-dark text-white align-middle">
+                        <tr>
+                            <th rowspan="2" class="py-3 px-3" style="width: 50px;">No</th>
+                            <th rowspan="2" class="py-3 px-3 text-start" style="min-width: 140px;">Periode (Bulan)</th>
+                            <th colspan="{{ kategori_list|length }}" class="py-2 border-bottom border-secondary text-uppercase tracking-wider small fw-bold">Kategori Biaya (Realisasi)</th>
+                            <th rowspan="2" class="py-3 px-3" style="min-width: 130px;">Total Realisasi</th>
+                            <th rowspan="2" class="py-3 px-3" style="min-width: 130px;">Anggaran Pagu</th>
+                            <th rowspan="2" class="py-3 px-3" style="min-width: 130px;">Sisa Anggaran</th>
+                        </tr>
+                        <tr>
+                            {% for k in kategori_list %}
+                            <th class="py-2 px-2 text-uppercase text-light small fw-normal bg-secondary bg-opacity-75" style="font-size: 0.75rem;">{{ k.nama_kategori }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- BARIS PERTAMA: ANGGARAN PAGU PER KATEGORI -->
+                        <tr class="table-primary fw-bold border-bottom border-2">
+                            <td class="py-3 text-muted">-</td>
+                            <td class="py-3 text-start text-primary"><i class="fa-solid fa-wallet me-1"></i> ANGGARAN (PAGU)</td>
+                            {% set total_anggaran_kategori = namespace(val=0) %}
+                            {% for k in kategori_list %}
+                            {% set total_anggaran_kategori.val = total_anggaran_kategori.val + (k.anggaran_pagu or 0) %}
+                            <td class="py-3 px-2 text-end text-primary font-monospace">
+                                {% if k.anggaran_pagu > 0 %}
+                                Rp {{ "{:,.0f}".format(k.anggaran_pagu) }}
+                                {% else %}
+                                <span class="text-muted opacity-50">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                            <td class="py-3 px-3 text-end text-muted">-</td>
+                            <td class="py-3 px-3 text-end text-primary font-monospace fs-6">Rp {{ "{:,.0f}".format(total_anggaran_kategori.val) }}</td>
+                            <td class="py-3 px-3 text-end text-muted">-</td>
+                        </tr>
+
+                        <!-- BARIS DATA TRANSAKSI PER PERIODE -->
+                        {% for periode, data in rekap_dict.items() %}
+                        {% set sisa_periode = total_anggaran_kategori.val - data.total %}
+                        <tr>
+                            <td class="py-3 text-muted">{{ loop.index }}</td>
+                            <td class="py-3 fw-semibold text-start text-dark"><i class="fa-regular fa-calendar-days text-muted me-1"></i> {{ data.bulan }} {{ data.tahun }}</td>
+                            {% for k in kategori_list %}
+                            <td class="py-3 px-2 text-end font-monospace text-secondary">
+                                {% if data.kategori[k.nama_kategori] > 0 %}
+                                Rp {{ "{:,.0f}".format(data.kategori[k.nama_kategori]) }}
+                                {% else %}
+                                <span class="text-muted opacity-25">-</span>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                            <td class="py-3 px-3 text-end fw-bold font-monospace text-dark">Rp {{ "{:,.0f}".format(data.total) }}</td>
+                            <td class="py-3 px-3 text-end font-monospace text-muted">Rp {{ "{:,.0f}".format(total_anggaran_kategori.val) }}</td>
+                            <td class="py-3 px-3 text-end fw-bold font-monospace {% if sisa_periode < 0 %}text-danger{% else %}text-success{% endif %}">
+                                Rp {{ "{:,.0f}".format(sisa_periode) }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="{{ 5 + kategori_list|length }}" class="text-center text-muted py-5">
+                                <div class="py-4">
+                                    <i class="fa-regular fa-folder-open fa-2x mb-2 text-secondary opacity-50"></i>
+                                    <p class="mb-0 small">Belum ada data transaksi kas yang tercatat untuk proyek ini.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+
+                        <!-- BARIS PALING BAWAH: SELISIH ANGGARAN VS REALISASI -->
+                        <tr class="table-dark fw-bold border-top border-2">
+                            <td class="py-3 text-muted">-</td>
+                            <td class="py-3 text-start text-uppercase"><i class="fa-solid fa-scale-balanced me-1"></i> Selisih Anggaran vs Realisasi</td>
+                            {% set total_realisasi_overall = namespace(val=0) %}
+                            {% for k in kategori_list %}
+                                {% set pagu_kat = k.anggaran_pagu or 0 %}
+                                {% set real_kat = total_realisasi_per_kategori[k.nama_kategori] or 0 %}
+                                {% set selisih_kat = pagu_kat - real_kat %}
+                                {% set total_realisasi_overall.val = total_realisasi_overall.val + real_kat %}
+                                <td class="py-3 px-2 text-end font-monospace {% if selisih_kat < 0 %}text-danger{% else %}text-info{% endif %}">
+                                    Rp {{ "{:,.0f}".format(selisih_kat) }}
+                                </td>
+                            {% endfor %}
+                            <td class="py-3 px-3 text-end font-monospace">Rp {{ "{:,.0f}".format(total_realisasi_overall.val) }}</td>
+                            <td class="py-3 px-3 text-end font-monospace">Rp {{ "{:,.0f}".format(total_anggaran_kategori.val) }}</td>
+                            {% set sisa_overall = total_anggaran_kategori.val - total_realisasi_overall.val %}
+                            <td class="py-3 px-3 text-end font-monospace {% if sisa_overall < 0 %}text-danger{% else %}text-success{% endif %}">
+                                Rp {{ "{:,.0f}".format(sisa_overall) }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-custom th, .table-custom td {
+        white-space: nowrap;
+        font-size: 0.82rem;
+    }
+    .table-custom tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.025);
+    }
+    .font-monospace {
+        letter-spacing: -0.3px;
+    }
+</style>
+{% endblock %}

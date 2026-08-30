@@ -1,0 +1,59 @@
+{% extends 'base.html' %} 
+
+{% block title %}Weekly Report - {{ proyek.nama_proyek }}{% endblock %} 
+
+{% block content %} 
+
+<div class="container py-4">
+    <div class="card shadow-lg border-0 mb-4 rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge bg-warning text-dark mb-2 px-3 py-1 rounded-pill fw-bold">WEEKLY REPORT</span>
+                <h2 class="mb-1 fw-bold">{{ proyek.nama_proyek }}</h2>
+                <p class="mb-0 text-white-50 small">Rekapitulasi laporan mingguan proyek</p>
+            </div>
+            <div>
+                <a href="/workspace/{{ proyek.id }}" class="btn btn-outline-light rounded-pill px-4">Kembali ke Workspace</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-calendar-week me-2 text-primary"></i>Daftar Laporan Mingguan</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Minggu Ke- / Periode</th>
+                        <th>Rentang Tanggal</th>
+                        <th>Total Hari Kerja</th>
+                        <th class="text-center" style="width: 150px;">Aksi Cetak</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in mingguan %}
+                    <tr>
+                        <td class="fw-semibold">Minggu {{ loop.index }} (Minggu Ke-{{ w.minggu }})</td>
+                        <td>{{ w.awal_minggu }} s/d {{ w.akhir_minggu }}</td>
+                        <td>{{ w.total_hari_kerja }} Hari</td>
+                        <td class="text-center">
+                            <a href="/cetak_weekly/{{ proyek.id }}/{{ w.minggu }}" target="_blank" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm me-1">
+                                <i class="fa-solid fa-print me-1"></i> Cetak PDF
+                            </a>
+                            <a href="/export_weekly_excel/{{ proyek.id }}/{{ w.minggu }}" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" download>
+                                <i class="fa-solid fa-file-excel me-1"></i> Excel
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">Belum ada data laporan mingguan.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,36 @@
+# Database lokal
+db_proyek.db
+db_proyek.sql
+
+# Freebuff internal
+.freebuff/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# Uploads (data user)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Backups
+backups/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test_export*.xlsx

@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Workspace Daily Report - {{ proyek.nama_proyek }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow-lg border-0 mb-4 rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+        <div class="card-body p-4 p-md-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+                <span class="badge bg-info text-dark mb-2 px-3 py-1 rounded-pill fw-bold">WORKSPACE PROYEK</span>
+                <h2 class="mb-1 fw-bold">{{ proyek.nama_proyek }}</h2>
+                <p class="mb-0 text-white-50 small"><i class="fa-solid fa-location-dot me-1 text-danger"></i>Lokasi: {{ proyek.lokasi if proyek.lokasi else '-' }} | <i class="fa-solid fa-building me-1 text-warning"></i>Owner: {{ proyek.pemilik_proyek if proyek.pemilik_proyek else '-' }}</p>
+            </div>
+            <div>
+                <a href="/" class="btn btn-outline-light rounded-pill px-4 me-2">Ganti Proyek</a>
+                <a href="/input/{{ proyek.id }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                    <i class="fa-solid fa-plus me-1"></i> Buat Laporan Harian
+                </a>
+            </div>
+        </div>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+         {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+         {% endfor %}
+       {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clock-rotate-left me-2 text-primary"></i>Riwayat Laporan Harian</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Cuaca</th>
+                        <th>Dokumen</th>
+                        <th class="text-center" style="width: 250px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in laporan %}
+                    <tr>
+                        <td class="fw-semibold">{{ l.tanggal_laporan }}</td>
+                        <td><span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">{{ l.cuaca }}</span></td>
+                        <td>
+                            {% if l.dokumen_upload %}
+                            <a href="{{ url_for('static', filename='uploads/' + l.dokumen_upload) }}" target="_blank" class="text-decoration-none small text-primary"><i class="fa-solid fa-file-pdf me-1"></i> Lihat File</a>
+                            {% else %}
+                            <span class="text-muted small">Tidak ada</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <a href="/cetak/{{ l.id }}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-2 py-1" title="Cetak PDF"><i class="fa-solid fa-print"></i></a>
+                            <a href="/export_daily_excel/{{ l.id }}" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1" title="Export Excel" download><i class="fa-solid fa-file-excel"></i></a>
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1" data-bs-toggle="modal" data-bs-target="#uploadModal{{ l.id }}" title="Upload Dokumen"><i class="fa-solid fa-upload"></i></button>
+                            <a href="/edit_laporan/{{ l.id }}/{{ proyek.id }}" class="btn btn-sm btn-outline-warning rounded-pill px-2 py-1" title="Edit Laporan"><i class="fa-solid fa-pen-to-square"></i></a>
+                            <a href="/delete/{{ l.id }}/{{ proyek.id }}" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1" onclick="return confirm('Yakin ingin menghapus laporan ini?')" title="Hapus"><i class="fa-solid fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    
+                    <div class="modal fade" id="uploadModal{{ l.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content border-0 shadow rounded-4">
+                                <form action="/upload/{{ l.id }}" method="POST" enctype="multipart/form-data">
+                                    <input type="hidden" name="proyek_id" value="{{ proyek.id }}">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                    <div class="modal-header bg-light">
+                                        <h5 class="modal-title fw-bold fs-6">Upload Dokumen Laporan ({{ l.tanggal_laporan }})</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <input type="file" class="form-control rounded-3" name="file" required>
+                                        <small class="text-muted">Semua format file diterima tanpa pembatasan ukuran.</small>
+                                    </div>
+                                    <div class="modal-footer bg-light">
+                                        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">Upload</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">Belum ada laporan harian yang diinput untuk proyek ini.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

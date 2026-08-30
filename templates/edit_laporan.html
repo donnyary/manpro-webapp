@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Laporan Harian - {{ proyek.nama_proyek }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1"><i class="fa-solid fa-pen-to-square me-2 text-primary"></i>Edit Laporan Harian</h2>
+            <p class="text-muted mb-0">Proyek: <span class="fw-semibold text-dark">{{ proyek.nama_proyek }}</span></p>
+        </div>
+        <div>
+            <a href="/workspace/{{ proyek.id }}" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm">
+                <i class="fa-solid fa-arrow-left me-1"></i> Batal Edit
+            </a>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+         {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+         {% endfor %}
+       {% endif %}
+    {% endwith %}
+
+    <form action="/update_laporan" method="POST">
+        <input type="hidden" name="proyek_id" value="{{ proyek.id }}">
+        <input type="hidden" name="laporan_id" value="{{ laporan.id }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+
+        <!-- 1. TANGGAL & CUACA -->
+        <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-calendar-day me-2 text-primary"></i>1. Informasi Tanggal & Cuaca</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Tanggal Laporan</label>
+                    <input type="date" class="form-control rounded-3" name="tanggal_laporan" value="{{ laporan.tanggal_laporan }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Kondisi Cuaca</label>
+                    <select class="form-select rounded-3" name="cuaca" required>
+                        <option value="Cerah" {% if laporan.cuaca == 'Cerah' %}selected{% endif %}>Cerah</option>
+                        <option value="Berawan" {% if laporan.cuaca == 'Berawan' %}selected{% endif %}>Berawan</option>
+                        <option value="Hujan Ringan" {% if laporan.cuaca == 'Hujan Ringan' %}selected{% endif %}>Hujan Ringan</option>
+                        <option value="Hujan Lebat" {% if laporan.cuaca == 'Hujan Lebat' %}selected{% endif %}>Hujan Lebat</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. TENAGA KERJA -->
+        <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-users me-2 text-primary"></i>2. Tenaga Kerja / Personil</h5>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="tambahBarisPekerja()">
+                    <i class="fa-solid fa-plus me-1"></i> Tambah Baris
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle" id="tablePekerja">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Jenis Pekerja / Jabatan</th>
+                            <th style="width: 120px;">Jumlah</th>
+                            <th style="width: 120px;">Hadir</th>
+                            <th style="width: 120px;">Tidak Hadir</th>
+                            <th>Keterangan</th>
+                            <th style="width: 60px;" class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in pekerja %}
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm" name="jenis_pekerja[]" value="{{ p.jenis_pekerja }}" required></td>
+                            <td><input type="number" class="form-control form-control-sm" name="jumlah_pekerja[]" value="{{ p.jumlah }}" required></td>
+                            <td><input type="number" class="form-control form-control-sm" name="hadir[]" value="{{ p.hadir }}" required></td>
+                            <td><input type="number" class="form-control form-control-sm" name="tidak_hadir[]" value="{{ p.tidak_hadir }}" required></td>
+                            <td><input type="text" class="form-control form-control-sm" name="ket_pekerja[]" value="{{ p.keterangan }}"></td>
+                            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm" name="jenis_pekerja[]" placeholder="Contoh: Pekerja / Tukang" required></td>
+                            <td><input type="number" class="form-control form-control-sm" name="jumlah_pekerja[]" value="1" required></td>
+                            <td><input type="number" class="form-control form-control-sm" name="hadir[]" value="1" required></td>
+                            <td><input type="number" class="form-control form-control-sm" name="tidak_hadir[]" value="0" required></td>
+                            <td><input type="text" class="form-control form-control-sm" name="ket_pekerja[]" placeholder="-"></td>
+                            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. PERALATAN -->
+        <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-truck-monster me-2 text-primary"></i>3. Peralatan dan Alat Berat</h5>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="tambahBarisAlat()">
+                    <i class="fa-solid fa-plus me-1"></i> Tambah Baris
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle" id="tableAlat">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nama Alat / Jenis Peralatan</th>
+                            <th style="width: 150px;">Jumlah Unit</th>
+                            <th style="width: 200px;">Kondisi</th>
+                            <th>Keterangan</th>
+                            <th style="width: 60px;" class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in peralatan %}
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm" name="nama_alat[]" value="{{ a.nama_alat }}"></td>
+                            <td><input type="number" class="form-control form-control-sm" name="jumlah_alat[]" value="{{ a.jumlah_alat }}"></td>
+                            <td>
+                                <select class="form-select form-select-sm" name="kondisi_alat[]">
+                                    <option value="Baik" {% if a.kondisi == 'Baik' %}selected{% endif %}>Baik</option>
+                                    <option value="Rusak Ringan" {% if a.kondisi == 'Rusak Ringan' %}selected{% endif %}>Rusak Ringan</option>
+                                    <option value="Rusak Berat" {% if a.kondisi == 'Rusak Berat' %}selected{% endif %}>Rusak Berat</option>
+                                </select>
+                            </td>
+                            <td><input type="text" class="form-control form-control-sm" name="ket_alat[]" value="{{ a.keterangan }}"></td>
+                            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm" name="nama_alat[]" placeholder="Contoh: Excavator / Dump Truck"></td>
+                            <td><input type="number" class="form-control form-control-sm" name="jumlah_alat[]" value="1"></td>
+                            <td>
+                                <select class="form-select form-select-sm" name="kondisi_alat[]">
+                                    <option value="Baik">Baik</option>
+                                    <option value="Rusak Ringan">Rusak Ringan</option>
+                                    <option value="Rusak Berat">Rusak Berat</option>
+                                </select>
+                            </td>
+                            <td><input type="text" class="form-control form-control-sm" name="ket_alat[]" placeholder="Beroperasi / Standby"></td>
+                            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 4. MATERIAL -->
+        <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-boxes-stacked me-2 text-primary"></i>4. Material / Bahan Datang</h5>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="tambahBarisMaterial()">
+                    <i class="fa-solid fa-plus me-1"></i> Tambah Baris
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle" id="tableMaterial">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nama Material / Bahan</th>
+                            <th style="width: 150px;">Volume Datang</th>
+                            <th style="width: 150px;">Satuan</th>
+                            <th>Keterangan</th>
+                            <th style="width: 60px;" class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in material %}
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm" name="nama_material[]" value="{{ m.nama_material }}"></td>
+                            <td><input type="number" step="0.01" class="form-control form-control-sm" name="volume_material[]" value="{{ m.volume_datang }}"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="satuan_material[]" value="{{ m.satuan }}"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="ket_material[]" value="{{ m.keterangan }}"></td>
+                            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm" name="nama_material[]" placeholder="Contoh: Semen / Pasir / Besi"></td>
+                            <td><input type="number" step="0.01" class="form-control form-control-sm" name="volume_material[]" value="0"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="satuan_material[]" placeholder="Sak / m3 / Ton"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="ket_material[]" placeholder="Sesuai Spesifikasi"></td>
+                            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 5. PEKERJAAN -->
+        <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-list-check me-2 text-primary"></i>5. Pekerjaan / Progres Lapangan</h5>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" onclick="tambahBarisPekerjaan()">
+                    <i class="fa-solid fa-plus me-1"></i> Tambah Baris
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle" id="tablePekerjaan">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Jenis Pekerjaan</th>
+                            <th>Lokasi</th>
+                            <th style="width: 110px;">Vol Harian</th>
+                            <th style="width: 110px;">Kumulatif (%)</th>
+                            <th style="width: 110px;">Target (%)</th>
+                            <th>Keterangan</th>
+                            <th style="width: 60px;" class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pk in pekerjaan %}
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm" name="jenis_pekerjaan[]" value="{{ pk.jenis_pekerjaan }}" required></td>
+                            <td><input type="text" class="form-control form-control-sm" name="lokasi_pekerjaan[]" value="{{ pk.lokasi }}"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="vol_harian[]" value="{{ pk.vol_harian }}"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="proses_kumulatif[]" value="{{ pk.proses_kumulatif }}"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="target_harian[]" value="{{ pk.target_harian }}"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="ket_pekerjaan[]" value="{{ pk.keterangan }}"></td>
+                            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td><input type="text" class="form-control form-control-sm" name="jenis_pekerjaan[]" placeholder="Uraian pekerjaan..." required></td>
+                            <td><input type="text" class="form-control form-control-sm" name="lokasi_pekerjaan[]" placeholder="Zona / Lantai"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="vol_harian[]" placeholder="0"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="proses_kumulatif[]" placeholder="0%"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="target_harian[]" placeholder="0%"></td>
+                            <td><input type="text" class="form-control form-control-sm" name="ket_pekerjaan[]" placeholder="-"></td>
+                            <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 6. KONDISI LAPANGAN -->
+        <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clipboard-question me-2 text-primary"></i>6. Kondisi Lapangan & Catatan</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Akses Lapangan</label>
+                    <input type="text" class="form-control rounded-3" name="akses_lapangan" value="{{ kondisi.akses if kondisi else '' }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Keselamatan Kerja (K3)</label>
+                    <input type="text" class="form-control rounded-3" name="keselamatan" value="{{ kondisi.k3 if kondisi else '' }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Kondisi Fisik Lapangan</label>
+                    <input type="text" class="form-control rounded-3" name="kondisi_lapangan" value="{{ kondisi.kondisi_fisik if kondisi else '' }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Faktor Penghambat / Kendala</label>
+                    <input type="text" class="form-control rounded-3" name="faktor_penghambat" value="{{ kondisi.hambatan if kondisi else 'Nihil' }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label small fw-bold text-secondary">Kegiatan Tak Terencana</label>
+                    <textarea class="form-control rounded-3" name="kegiatan_tak_terencana" rows="2">{{ kondisi.tak_terencana if kondisi else 'Nihil' }}</textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. PENGESAHAN -->
+        <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-signature me-2 text-primary"></i>7. Pengesahan Laporan</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Nama Pembuat Laporan (Pelaksana)</label>
+                    <input type="text" class="form-control rounded-3" name="nama_pembuat" value="{{ pengesahan.nama_pembuat if pengesahan else '' }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-secondary">Nama Penyetuju (Konsultan / Owner)</label>
+                    <input type="text" class="form-control rounded-3" name="nama_penyetuju" value="{{ pengesahan.nama_penyetuju if pengesahan else '' }}" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-end mb-5">
+            <button type="submit" class="btn btn-primary btn-lg px-5 rounded-pill shadow-sm fw-semibold">
+                <i class="fa-solid fa-save me-2"></i> Simpan Perubahan Laporan
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function hapusBaris(btn) {
+    let row = btn.closest('tr');
+    if (row.parentNode.rows.length > 1) {
+        row.remove();
+    } else {
+        alert('Minimal harus ada 1 baris!');
+    }
+}
+function tambahBarisPekerja() {
+    let tbody = document.getElementById('tablePekerja').getElementsByTagName('tbody')[0];
+    let newRow = tbody.insertRow();
+    newRow.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" name="jenis_pekerja[]" placeholder="Jenis pekerja..." required></td>
+        <td><input type="number" class="form-control form-control-sm" name="jumlah_pekerja[]" value="1" required></td>
+        <td><input type="number" class="form-control form-control-sm" name="hadir[]" value="1" required></td>
+        <td><input type="number" class="form-control form-control-sm" name="tidak_hadir[]" value="0" required></td>
+        <td><input type="text" class="form-control form-control-sm" name="ket_pekerja[]" placeholder="-"></td>
+        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+    `;
+}
+function tambahBarisAlat() {
+    let tbody = document.getElementById('tableAlat').getElementsByTagName('tbody')[0];
+    let newRow = tbody.insertRow();
+    newRow.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" name="nama_alat[]" placeholder="Nama alat..."></td>
+        <td><input type="number" class="form-control form-control-sm" name="jumlah_alat[]" value="1"></td>
+        <td>
+            <select class="form-select form-select-sm" name="kondisi_alat[]">
+                <option value="Baik">Baik</option>
+                <option value="Rusak Ringan">Rusak Ringan</option>
+                <option value="Rusak Berat">Rusak Berat</option>
+            </select>
+        </td>
+        <td><input type="text" class="form-control form-control-sm" name="ket_alat[]" placeholder="Keterangan"></td>
+        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+    `;
+}
+function tambahBarisMaterial() {
+    let tbody = document.getElementById('tableMaterial').getElementsByTagName('tbody')[0];
+    let newRow = tbody.insertRow();
+    newRow.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" name="nama_material[]" placeholder="Nama material..."></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm" name="volume_material[]" value="0"></td>
+        <td><input type="text" class="form-control form-control-sm" name="satuan_material[]" placeholder="Satuan"></td>
+        <td><input type="text" class="form-control form-control-sm" name="ket_material[]" placeholder="Keterangan"></td>
+        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+    `;
+}
+function tambahBarisPekerjaan() {
+    let tbody = document.getElementById('tablePekerjaan').getElementsByTagName('tbody')[0];
+    let newRow = tbody.insertRow();
+    newRow.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm" name="jenis_pekerjaan[]" placeholder="Uraian pekerjaan..." required></td>
+        <td><input type="text" class="form-control form-control-sm" name="lokasi_pekerjaan[]" placeholder="Lokasi"></td>
+        <td><input type="text" class="form-control form-control-sm" name="vol_harian[]" placeholder="0"></td>
+        <td><input type="text" class="form-control form-control-sm" name="proses_kumulatif[]" placeholder="0%"></td>
+        <td><input type="text" class="form-control form-control-sm" name="target_harian[]" placeholder="0%"></td>
+        <td><input type="text" class="form-control form-control-sm" name="ket_pekerjaan[]" placeholder="-"></td>
+        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
+    `;
+}
+</script>
+{% endblock %}

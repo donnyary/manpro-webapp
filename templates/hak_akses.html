@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}Hak Akses Menu - Admin Panel{% endblock %}
+
+{% block content %}
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="card shadow-lg border-0 mb-4 rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge bg-warning text-dark mb-2 px-3 py-1 rounded-pill fw-bold">ADMIN PANEL</span>
+                <h2 class="mb-1 fw-bold"><i class="fa-solid fa-shield-halved me-2"></i>Hak Akses Menu</h2>
+                <p class="mb-0 text-white-50 small">Atur menu mana saja yang bisa diakses oleh masing-masing role user</p>
+            </div>
+            <div>
+                <a href="/users" class="btn btn-outline-light rounded-pill px-4 me-2">
+                    <i class="fa-solid fa-users-gear me-1"></i> Kelola User
+                </a>
+                <a href="/" class="btn btn-outline-light rounded-pill px-4">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Kembali
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+         {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+         {% endfor %}
+       {% endif %}
+    {% endwith %}
+
+    <!-- Info Box -->
+    <div class="alert alert-info rounded-4 mb-4 d-flex align-items-start py-3" role="alert">
+        <i class="fa-solid fa-circle-info me-3 mt-1 fs-5"></i>
+        <div>
+            <strong class="d-block mb-1">Cara Kerja Hak Akses</strong>
+            <span class="small text-muted">
+                Centang menu yang ingin diizinkan untuk role tertentu. Role <strong>Admin</strong> selalu memiliki akses penuh ke semua menu (tidak bisa diubah). 
+                Perubahan akan berlaku untuk sidebar navigasi dan halaman yang sesuai.
+            </span>
+        </div>
+    </div>
+
+    <!-- Permission Matrix Form -->
+    <form action="/hak_akses/save" method="POST">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        
+        <div class="card shadow-sm border-0 rounded-4 bg-white overflow-hidden">
+            <div class="card-header bg-dark text-white px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold"><i class="fa-solid fa-table-cells me-2"></i>Matriks Hak Akses</h5>
+                <button type="submit" class="btn btn-success btn-sm rounded-pill px-4 fw-bold">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Perubahan
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="ps-4" style="width: 35%;">Menu / Halaman</th>
+                                <th class="text-center" style="width: 15%;">Group</th>
+                                <th class="text-center" style="width: 12%;">
+                                    <span class="badge bg-danger px-3 py-1 rounded-pill">Admin</span>
+                                </th>
+                                <th class="text-center" style="width: 12%;">
+                                    <span class="badge bg-primary px-3 py-1 rounded-pill">Manager</span>
+                                </th>
+                                <th class="text-center" style="width: 12%;">
+                                    <span class="badge bg-secondary px-3 py-1 rounded-pill">User</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set prev_group = {'val': ''} %}
+                            {% for menu in menu_definitions %}
+                                {% if menu.group != prev_group.val %}
+                                    {% if prev_group.val != '' %}
+                                    <tr class="table-light">
+                                        <td colspan="5" class="py-1"></td>
+                                    </tr>
+                                    {% endif %}
+                                    {% set _ = prev_group.update({'val': menu.group}) %}
+                                {% endif %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <i class="fa-solid {{ menu.icon }} me-2 text-primary"></i>
+                                        <strong>{{ menu.label }}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-light text-dark border">{{ menu.group }}</span>
+                                    </td>
+                                    <td class="text-center">
+                                        {% if menu.key == 'users' and menu.key == 'users' %}
+                                            <input class="form-check-input" type="checkbox" disabled checked
+                                                title="Admin selalu punya akses penuh">
+                                        {% else %}
+                                            <div class="form-check form-switch d-flex justify-content-center">
+                                                <input class="form-check-input" type="checkbox" disabled checked
+                                                    style="cursor: not-allowed; opacity: 0.8;"
+                                                    title="Admin selalu punya akses penuh">
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-flex justify-content-center">
+                                            <input class="form-check-input" type="checkbox"
+                                                name="perm_manager_{{ menu.key }}"
+                                                value="1"
+                                                {% if perm_matrix.get('manager', {}).get(menu.key, False) %}checked{% endif %}
+                                                {% if menu.key == 'users' %}title="Kelola User khusus Admin"{% endif %}>
+                                        </div>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-flex justify-content-center">
+                                            <input class="form-check-input" type="checkbox"
+                                                name="perm_user_{{ menu.key }}"
+                                                value="1"
+                                                {% if perm_matrix.get('user', {}).get(menu.key, False) %}checked{% endif %}>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-light px-4 py-3 d-flex justify-content-between align-items-center">
+                <div class="small text-muted">
+                    <i class="fa-solid fa-circle-exclamation me-1"></i>
+                    Centang = Boleh Akses | Kosong = Tidak Boleh Akses
+                </div>
+                <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Simpan Perubahan
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Quick Summary Cards -->
+    <div class="row g-3 mt-4">
+        {% for role_name, role_label, role_color, role_desc in [
+            ('admin', 'Admin', 'danger', 'Akses penuh ke semua menu dan fitur'),
+            ('manager', 'Manager', 'primary', 'Mengelola proyek dan laporan'),
+            ('user', 'User', 'secondary', 'Melihat laporan dan monitoring proyek')
+        ] %}
+        <div class="col-md-4">
+            <div class="card border-0 bg-{{ role_color }} bg-opacity-10 rounded-4 p-3 h-100">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="badge bg-{{ role_color }} px-3 py-1 rounded-pill fw-bold me-2">{{ role_label }}</span>
+                    <small class="text-muted">{{ role_desc }}</small>
+                </div>
+                <div class="d-flex flex-wrap gap-1">
+                    {% for menu in menu_definitions %}
+                        {% if menu.key == 'users' or role_name == 'admin' %}
+                            <span class="badge bg-{{ role_color }} bg-opacity-75 text-white" style="font-size: 0.7rem;">
+                                <i class="fa-solid {{ menu.icon }} me-1"></i>{{ menu.label }}
+                            </span>
+                        {% elif perm_matrix.get(role_name, {}).get(menu.key, False) %}
+                            <span class="badge bg-{{ role_color }} bg-opacity-75 text-white" style="font-size: 0.7rem;">
+                                <i class="fa-solid {{ menu.icon }} me-1"></i>{{ menu.label }}
+                            </span>
+                        {% else %}
+                            <span class="badge bg-light text-muted border" style="font-size: 0.7rem; text-decoration: line-through;">
+                                <i class="fa-solid {{ menu.icon }} me-1"></i>{{ menu.label }}
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

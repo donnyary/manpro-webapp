@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}WBS Management - {{ proyek.nama_proyek }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow-lg border-0 mb-4 rounded-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge bg-secondary mb-2 px-3 py-1 rounded-pill fw-bold">WBS MANAGEMENT</span>
+                <h2 class="mb-1 fw-bold">{{ proyek.nama_proyek }}</h2>
+                <p class="mb-0 text-white-50 small">Work Breakdown Structure & Bobot Pekerjaan</p>
+            </div>
+            <div>
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddWbs">
+                    <i class="fa-solid fa-plus me-1"></i> Tambah Item WBS
+                </button>
+            </div>
+        </div>
+    </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+         {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+         {% endfor %}
+       {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-sitemap me-2 text-primary"></i>Daftar Item Pekerjaan WBS</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 120px;">Kode WBS</th>
+                        <th>Nama Pekerjaan</th>
+                        <th style="width: 150px;">Bobot (%)</th>
+                        <th class="text-center" style="width: 140px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in wbs_list %}
+                    <tr>
+                        <td class="fw-semibold text-primary">{{ w.kode_wbs }}</td>
+                        <td>{{ w.nama_pekerjaan }}</td>
+                        <td>{{ w.bobot_persen }}%</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-warning rounded-pill px-2 me-1" data-bs-toggle="modal" data-bs-target="#modalEditWbs{{ w.id }}" title="Edit">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <a href="/delete_wbs/{{ w.id }}/{{ proyek.id }}" class="btn btn-sm btn-outline-danger rounded-pill px-2" onclick="return confirm('Hapus item WBS ini?')" title="Hapus"><i class="fa-solid fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    <!-- Modal Edit WBS (Identik dengan Modal Tambah WBS) -->
+                    <div class="modal fade" id="modalEditWbs{{ w.id }}" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content border-0 shadow-lg rounded-4">
+                                <form action="/edit_wbs/{{ w.id }}/{{ proyek.id }}" method="POST">
+                                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Item WBS</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body p-4 text-start">
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold">Kode WBS</label>
+                                            <input type="text" class="form-control rounded-3" name="kode_wbs" value="{{ w.kode_wbs }}" placeholder="Contoh: 1.1" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold">Nama Pekerjaan</label>
+                                            <input type="text" class="form-control rounded-3" name="nama_pekerjaan" value="{{ w.nama_pekerjaan }}" placeholder="Uraian pekerjaan..." required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold">Bobot (%)</label>
+                                            <input type="number" step="0.01" class="form-control rounded-3" name="bobot_persen" value="{{ w.bobot_persen }}" placeholder="0.00" required>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer bg-light">
+                                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+                                        <button type="submit" class="btn btn-primary rounded-pill px-4">Simpan Perubahan</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-4">Belum ada item WBS yang ditambahkan.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah WBS -->
+<div class="modal fade" id="modalAddWbs" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form action="/add_wbs/{{ proyek.id }}" method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-plus-circle me-2"></i>Tambah Item WBS</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Kode WBS</label>
+                        <input type="text" class="form-control rounded-3" name="kode_wbs" placeholder="Contoh: 1.1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Nama Pekerjaan</label>
+                        <input type="text" class="form-control rounded-3" name="nama_pekerjaan" placeholder="Uraian pekerjaan..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Bobot (%)</label>
+                        <input type="number" step="0.01" class="form-control rounded-3" name="bobot_persen" placeholder="0.00" required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

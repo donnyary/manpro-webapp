@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Pengaturan Proyek - {{ proyek.nama_proyek }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Notifikasi Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+         {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm rounded-3 mb-4">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+         {% endfor %}
+       {% endif %}
+    {% endwith %}
+
+    <!-- Card Pengaturan Utama Proyek -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white mb-4">
+        <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-gear me-2"></i>Pengaturan Proyek</h5>
+        <form action="/pengaturan_proyek/{{ proyek.id }}" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Nama Proyek</label>
+                    <input type="text" class="form-control rounded-3" name="nama_proyek" value="{{ proyek.nama_proyek }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Pemilik Proyek (Owner)</label>
+                    <input type="text" class="form-control rounded-3" name="pemilik_proyek" value="{{ proyek.pemilik_proyek }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Lokasi Proyek</label>
+                    <input type="text" class="form-control rounded-3" name="lokasi" value="{{ proyek.lokasi }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">No. Kontrak</label>
+                    <input type="text" class="form-control rounded-3" name="no_kontrak" value="{{ proyek.no_kontrak }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Logo Pemilik Proyek (Opsional)</label>
+                    <input type="file" class="form-control rounded-3" name="logo_pemilik" accept="image/*">
+                    {% if proyek.logo_pemilik %}
+                    <div class="mt-2">
+                        <img src="{{ url_for('static', filename='uploads/' + proyek.logo_pemilik) }}" alt="Logo Pemilik" style="height: 50px;" class="rounded shadow-sm">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">Simpan Pengaturan Proyek</button>
+        </form>
+    </div>
+
+    <!-- Card Daftar Kategori Biaya Proyek -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-tags me-2"></i>Daftar Kategori Biaya Proyek Ini</h5>
+            <button class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalTambahKategori">
+                <i class="fa-solid fa-plus me-1"></i> Tambah Kategori Baru
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 80px;">No</th>
+                        <th>Nama Kategori Biaya</th>
+                        <th class="text-center" style="width: 140px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for k in kategori_list %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td class="fw-bold text-dark">{{ k.nama_kategori }}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-warning text-white rounded-2 px-2 py-1 me-1" data-bs-toggle="modal" data-bs-target="#modalEditKat{{ k.id }}" title="Edit">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <a href="/delete_kategori_budget/{{ k.id }}/{{ proyek.id }}" class="btn btn-sm btn-danger rounded-2 px-2 py-1" onclick="return confirm('Hapus kategori biaya ini?')" title="Hapus">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted py-4">Belum ada kategori biaya untuk proyek ini.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL-MODAL PENDUKUNG                      -->
+<!-- ========================================== -->
+
+<!-- Modal Tambah Kategori Baru -->
+<div class="modal fade" id="modalTambahKategori" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form action="/add_kategori_budget/{{ proyek.id }}" method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-plus-circle me-2"></i>Tambah Kategori Biaya Baru</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-start p-4">
+                    <label class="form-label small fw-bold">Nama Kategori Biaya</label>
+                    <input type="text" class="form-control rounded-3" name="nama_kategori" placeholder="Contoh: OPERASIONAL LAPANGAN" required>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Tambah Kategori</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Kategori (Looping per item) -->
+{% for k in kategori_list %}
+<div class="modal fade" id="modalEditKat{{ k.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <form action="/edit_kategori_budget/{{ k.id }}/{{ proyek.id }}" method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-pen-to-square me-2"></i>Edit Kategori Biaya</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-start p-4">
+                    <label class="form-label small fw-bold">Nama Kategori Biaya</label>
+                    <input type="text" class="form-control rounded-3" name="nama_kategori" value="{{ k.nama_kategori }}" required>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning text-white rounded-pill px-4">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

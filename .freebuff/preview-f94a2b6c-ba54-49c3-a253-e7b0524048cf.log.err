@@ -1,0 +1,15 @@
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5002
+Press CTRL+C to quit
+127.0.0.1 - - [27/Aug/2026 15:16:56] "GET / HTTP/1.1" 302 -
+127.0.0.1 - - [27/Aug/2026 15:16:57] "GET / HTTP/1.1" 302 -
+127.0.0.1 - - [27/Aug/2026 15:16:57] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [27/Aug/2026 15:17:02] "GET /workspace/1 HTTP/1.1" 302 -
+127.0.0.1 - - [27/Aug/2026 15:17:02] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [27/Aug/2026 15:17:23] "POST /login HTTP/1.1" 302 -
+127.0.0.1 - - [27/Aug/2026 15:17:23] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [27/Aug/2026 15:18:17] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [27/Aug/2026 15:19:44] "GET / HTTP/1.1" 302 -
+127.0.0.1 - - [27/Aug/2026 15:19:44] "GET /login HTTP/1.1" 200 -
+127.0.0.1 - - [27/Aug/2026 15:19:55] "POST /login HTTP/1.1" 302 -
+127.0.0.1 - - [27/Aug/2026 15:19:55] "GET / HTTP/1.1" 200 -
