@@ -3568,6 +3568,13 @@ def get_sync_state():
 app.jinja_env.globals['get_sync_state'] = get_sync_state
 
 
+def is_cloud_environment():
+    """Deteksi apakah app berjalan di cloud (Railway/TiDB) atau lokal."""
+    return bool(os.environ.get('DATABASE_URL') or os.environ.get('MYSQLURL'))
+
+app.jinja_env.globals['is_cloud'] = is_cloud_environment
+
+
 def _get_cloud_conn():
     """Koneksi ke TiDB Cloud (hardcoded untuk local sync)."""
     try:
