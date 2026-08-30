@@ -1091,6 +1091,7 @@ def sync_data():
         if conn_cloud:
             cur = conn_cloud.cursor()
             cur.execute('SELECT 1')
+            cur.fetchone()
             cur.close()
             conn_cloud.close()
             cloud_ok = True
