@@ -296,25 +296,6 @@ function tambahBarisMaterial() {
     `;
 }
 
-const wbsTargetBulanan = {{ wbs_target_bulanan | tojson }};
-
-function updateTargetBulanan(sel) {
-    let row = sel.closest('tr');
-    let nama = sel.value;
-    let cells = row.querySelectorAll('td');
-    // M1=index 5, M2=index 6, M3=index 7 (0-based)
-    if (wbsTargetBulanan[nama]) {
-        let t = wbsTargetBulanan[nama];
-        cells[5].innerHTML = '<small class="text-info fw-bold">' + (t['M1'] || '-') + '%</small>';
-        cells[6].innerHTML = '<small class="text-info fw-bold">' + (t['M2'] || '-') + '%</small>';
-        cells[7].innerHTML = '<small class="text-info fw-bold">' + (t['M3'] || '-') + '%</small>';
-    } else {
-        cells[5].innerHTML = '<small class="text-info fw-bold">-</small>';
-        cells[6].innerHTML = '<small class="text-info fw-bold">-</small>';
-        cells[7].innerHTML = '<small class="text-info fw-bold">-</small>';
-    }
-}
-
 function tambahBarisPekerjaan() {
     let tbody = document.getElementById('tablePekerjaan').getElementsByTagName('tbody')[0];
     let newRow = tbody.insertRow();
@@ -323,14 +304,10 @@ function tambahBarisPekerjaan() {
         <td><input type="text" class="form-control form-control-sm" name="lokasi_pekerjaan[]" placeholder="Lokasi"></td>
         <td><input type="text" class="form-control form-control-sm" name="vol_harian[]" placeholder="0"></td>
         <td><input type="text" class="form-control form-control-sm" name="proses_kumulatif[]" placeholder="0%"></td>
-        <td class="text-center"><small class="text-info fw-bold">-</small></td>
-        <td class="text-center"><small class="text-info fw-bold">-</small></td>
-        <td class="text-center"><small class="text-info fw-bold">-</small></td>
+        <td><input type="text" class="form-control form-control-sm" name="target_harian[]" placeholder="0%"></td>
         <td><input type="text" class="form-control form-control-sm" name="ket_pekerjaan[]" placeholder="-"></td>
         <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="hapusBaris(this)"><i class="fa-solid fa-trash"></i></button></td>
     `;
-    let sel = newRow.querySelector('select');
-    sel.addEventListener('change', function(){ updateTargetBulanan(this); });
 }
 </script>
 
