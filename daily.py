@@ -2812,6 +2812,10 @@ def wbs_view(proyek_id):
 @login_required
 def add_wbs(proyek_id):
     if not validate_csrf(): return redirect(url_for('wbs_view', proyek_id=proyek_id))
+    # ── Permission Check ──
+    if not can_user_edit(session['user_id']):
+        flash('Anda tidak memiliki akses untuk menambah data!', 'danger')
+        return redirect(url_for('wbs_view', proyek_id=proyek_id))
     conn = get_db_connection()
     cursor = conn.cursor()
     sql = "INSERT INTO master_wbs (proyek_id, kode_wbs, nama_pekerjaan, bobot_persen) VALUES (%s, %s, %s, %s)"
