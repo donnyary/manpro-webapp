@@ -1324,14 +1324,22 @@ def dashboard():
         # Admin/manager lihat semua proyek
         cursor.execute("SELECT * FROM master_proyek ORDER BY id DESC")
     else:
-        # User biasa hanya lihat proyek yang diakses
+        # User biasa: cek apakah punya user_projects record
         try:
-            cursor.execute("""
-                SELECT DISTINCT mp.* FROM master_proyek mp
-                JOIN user_projects up ON mp.id = up.proyek_id
-                WHERE up.user_id = %s
-                ORDER BY mp.id DESC
-            """, (user_id,))
+            cursor.execute('SELECT COUNT(*) as cnt FROM user_projects WHERE user_id = %s', (user_id,))
+            has_records = cursor.fetchone()['cnt'] > 0
+            
+            if has_records:
+                # Hanya lihat proyek yang diakses
+                cursor.execute("""
+                    SELECT DISTINCT mp.* FROM master_proyek mp
+                    JOIN user_projects up ON mp.id = up.proyek_id
+                    WHERE up.user_id = %s
+                    ORDER BY mp.id DESC
+                """, (user_id,))
+            else:
+                # Belum ada pengaturan akses, tampilkan semua proyek
+                cursor.execute("SELECT * FROM master_proyek ORDER BY id DESC")
         except:
             # Jika tabel user_projects belum ada, tampilkan semua
             cursor.execute("SELECT * FROM master_proyek ORDER BY id DESC")
