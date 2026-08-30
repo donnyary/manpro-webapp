@@ -153,6 +153,13 @@ def get_db_connection():
     """
     database_url = os.environ.get('DATABASE_URL', '') or os.environ.get('MYSQL_URL', '') or os.environ.get('MYSQLURL', '')
     
+    # Railway MySQL: cek variable terpisah juga
+    db_host = os.environ.get('MYSQLHOST', '') or os.environ.get('DB_HOST', '')
+    db_port = int(os.environ.get('MYSQLPORT', '') or os.environ.get('DB_PORT', '3306') or '3306')
+    db_user = os.environ.get('MYSQLUSER', '') or os.environ.get('DB_USER', '') or os.environ.get('MYSQLUSER', '')
+    db_password = os.environ.get('MYSQLPASSWORD', '') or os.environ.get('DB_PASSWORD', '')
+    db_name = os.environ.get('MYSQLDATABASE', '') or os.environ.get('DB_NAME', '') or 'db_proyek'
+    
     if database_url:
         # Parse DATABASE_URL (format: mysql://user:pass@host:port/dbname?params)
         # Support format postgres:// yang kadang dipakai cloud provider
@@ -191,13 +198,14 @@ def get_db_connection():
             db_user = os.environ.get('DB_USER', 'root')
             db_password = os.environ.get('DB_PASSWORD', '')
             db_name = os.environ.get('DB_NAME', 'db_proyek')
-    else:
-        # Lokal: gunakan env vars atau default
-        db_host = os.environ.get('DB_HOST', '127.0.0.1')
-        db_port = int(os.environ.get('DB_PORT', 3306))
-        db_user = os.environ.get('DB_USER', 'root')
-        db_password = os.environ.get('DB_PASSWORD', '')
-        db_name = os.environ.get('DB_NAME', 'db_proyek')
+    
+    # Jika tidak ada URL dan tidak ada host dari Railway, gunakan default lokal
+    if not database_url and not db_host:
+        db_host = '127.0.0.1'
+        db_port = 3306
+        db_user = 'root'
+        db_password = ''
+        db_name = 'db_proyek'
     
     return mysql.connector.connect(
         host=db_host,
