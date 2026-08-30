@@ -1498,9 +1498,11 @@ def workspace_history(proyek_id):
     date_to = request.args.get('date_to', '')
     jenis_filter = request.args.get('jenis_pekerjaan', '')
     
-    # Build query dengan filter
+    # Build query - satu query dengan GROUP_CONCAT untuk jenis pekerjaan
     sql = """
-        SELECT DISTINCT lh.* FROM laporan_harian lh
+        SELECT lh.*, 
+               COALESCE(GROUP_CONCAT(DISTINCT p.jenis_pekerjaan SEPARATOR ', '), '-') as jenis_pekerjaan
+        FROM laporan_harian lh
         LEFT JOIN pekerjaan p ON lh.id = p.laporan_id
         WHERE lh.proyek_id = %s
     """
@@ -1516,18 +1518,9 @@ def workspace_history(proyek_id):
         sql += " AND p.jenis_pekerjaan = %s"
         params.append(jenis_filter)
     
-    sql += " ORDER BY lh.tanggal_laporan DESC"
+    sql += " GROUP BY lh.id ORDER BY lh.tanggal_laporan DESC"
     cursor.execute(sql, params)
     laporan = cursor.fetchall()
-    
-    # Ambil jenis pekerjaan untuk setiap laporan
-    for l in laporan:
-        cursor.execute("""
-            SELECT GROUP_CONCAT(DISTINCT jenis_pekerjaan SEPARATOR ', ') as jenis
-            FROM pekerjaan WHERE laporan_id = %s
-        """, (l['id'],))
-        row = cursor.fetchone()
-        l['jenis_pekerjaan'] = row['jenis'] if row and row['jenis'] else '-'
     
     # Ambil daftar jenis pekerjaan unik untuk dropdown filter
     cursor.execute("""
