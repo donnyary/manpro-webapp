@@ -1597,24 +1597,15 @@ def edit_laporan(id, proyek_id):
     cursor.execute("SELECT * FROM pengesahan WHERE laporan_id = %s", (id,))
     pengesahan = cursor.fetchone()
     
+    # Ambil data WBS untuk dropdown jenis pekerjaan
+    cursor.execute("SELECT nama_pekerjaan FROM master_wbs WHERE proyek_id = %s ORDER BY kode_wbs ASC", (proyek_id,))
+    wbs_list = [r['nama_pekerjaan'] for r in cursor.fetchall()]
+    
     conn.close()
     
     if not laporan:
         flash('Laporan tidak ditemukan!', 'danger')
         return redirect(url_for('workspace_history', proyek_id=proyek_id))
-        
-    # Ambil data WBS untuk dropdown jenis pekerjaan
-    cursor2 = conn.cursor(dictionary=True) if not conn.closed else None
-    if cursor2 is None:
-        conn2 = get_db_connection()
-        cursor2 = conn2.cursor(dictionary=True)
-    else:
-        conn2 = conn
-    cursor2.execute("SELECT nama_pekerjaan FROM master_wbs WHERE proyek_id = %s ORDER BY kode_wbs ASC", (proyek_id,))
-    wbs_list = [r['nama_pekerjaan'] for r in cursor2.fetchall()]
-    cursor2.close()
-    if conn2 != conn:
-        conn2.close()
     
     return render_template('edit_laporan.html', proyek=proyek, laporan=laporan, pekerja=pekerja, peralatan=peralatan, material=material, pekerjaan=pekerjaan, kondisi=kondisi, pengesahan=pengesahan, wbs_list=wbs_list)
 
