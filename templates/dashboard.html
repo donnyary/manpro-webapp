@@ -11,7 +11,7 @@
             <p class="text-muted mb-0">Daftar Proyek Aktif dan Monitoring Lapangan</p>
         </div>
         <div>
-            {% if has_menu_access('pengaturan') %}
+            {% if has_menu_access('pengaturan') and session.get('can_edit', True) %}
             <button class="btn btn-primary fw-semibold rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAddProject">
                 <i class="fa-solid fa-plus-circle me-1"></i> Tambah Proyek Baru
             </button>
