@@ -1651,7 +1651,7 @@ def edit_laporan(id, proyek_id):
         return redirect(url_for('workspace_history', proyek_id=proyek_id))
     
     g.wbs_list_cache = wbs_list
-    return render_template('edit_laporan.html', proyek=proyek, laporan=laporan, pekerja=pekerja, peralatan=peralatan, material=material, pekerjaan=pekerjaan, kondisi=kondisi, pengesahan=pengesahan, wbs_list=wbs_list, wbs_target_bulanan=wbs_target_bulanan)
+    return render_template('edit_laporan.html', proyek=proyek, laporan=laporan, pekerja=pekerja, peralatan=peralatan, material=material, pekerjaan=pekerjaan, kondisi=kondisi, pengesahan=pengesahan, wbs_list=wbs_list)
 
 @app.route('/update_laporan', methods=['POST'])
 @login_required
