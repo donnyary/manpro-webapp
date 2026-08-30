@@ -1299,7 +1299,26 @@ def sync_bidirectional():
 def dashboard():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM master_proyek ORDER BY id DESC")
+    
+    user_role = session.get('role', 'user')
+    user_id = session.get('user_id')
+    
+    if user_role in ('admin', 'manager'):
+        # Admin/manager lihat semua proyek
+        cursor.execute("SELECT * FROM master_proyek ORDER BY id DESC")
+    else:
+        # User biasa hanya lihat proyek yang diakses
+        try:
+            cursor.execute("""
+                SELECT DISTINCT mp.* FROM master_proyek mp
+                JOIN user_projects up ON mp.id = up.proyek_id
+                WHERE up.user_id = %s
+                ORDER BY mp.id DESC
+            """, (user_id,))
+        except:
+            # Jika tabel user_projects belum ada, tampilkan semua
+            cursor.execute("SELECT * FROM master_proyek ORDER BY id DESC")
+    
     proyek_list = cursor.fetchall()
     conn.close()
     return render_template('dashboard.html', proyek_list=proyek_list)
