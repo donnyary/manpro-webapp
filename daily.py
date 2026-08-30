@@ -1504,8 +1504,11 @@ def input_laporan(proyek_id):
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT * FROM master_proyek WHERE id = %s", (proyek_id,))
     proyek = cursor.fetchone()
+    # Ambil data WBS untuk dropdown jenis pekerjaan
+    cursor.execute("SELECT nama_pekerjaan FROM master_wbs WHERE proyek_id = %s ORDER BY kode_wbs ASC", (proyek_id,))
+    wbs_list = [r['nama_pekerjaan'] for r in cursor.fetchall()]
     conn.close()
-    return render_template('index.html', proyek=proyek)
+    return render_template('index.html', proyek=proyek, wbs_list=wbs_list)
 
 @app.route('/submit', methods=['POST'])
 @login_required
