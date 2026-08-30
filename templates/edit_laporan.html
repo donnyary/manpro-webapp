@@ -289,6 +289,33 @@
 </div>
 
 <script>
+const wbsOptions = [{% for wbs in wbs_list %}'{{ wbs | replace("'", "\\'") }}'{% if not loop.last %},{% endif %}{% endfor %}];
+
+function getWbsSelectHtml(name, currentValue) {
+    let html = '<select class="form-select form-select-sm" name="' + name + '" required onchange="toggleCustomInput(this)">';
+    html += '<option value="" disabled>-- Pilih Pekerjaan --</option>';
+    for (let w of wbsOptions) {
+        let selected = (w === currentValue) ? ' selected' : '';
+        html += '<option value="' + w + '"' + selected + '>' + w + '</option>';
+    }
+    html += '<option value="__LAINNYA__"' + (currentValue && !wbsOptions.includes(currentValue) ? ' selected' : '') + '>Lainnya (ketik sendiri)</option>';
+    html += '</select>';
+    let isCustom = currentValue && !wbsOptions.includes(currentValue);
+    html += '<input type="text" class="form-control form-control-sm mt-1' + (isCustom ? '' : ' d-none') + '" name="' + name.replace('[]', '_custom[]') + '" placeholder="Ketik jenis pekerjaan..." value="' + (isCustom ? currentValue : '') + '">';
+    return html;
+}
+
+function toggleCustomInput(sel) {
+    let customInput = sel.nextElementSibling;
+    if (sel.value === '__LAINNYA__') {
+        customInput.classList.remove('d-none');
+        customInput.focus();
+    } else {
+        customInput.classList.add('d-none');
+        customInput.value = '';
+    }
+}
+
 function hapusBaris(btn) {
     let row = btn.closest('tr');
     if (row.parentNode.rows.length > 1) {
