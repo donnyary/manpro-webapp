@@ -2815,7 +2815,7 @@ def gantt_chart(proyek_id):
     # 4. Hitung Rencana Kumulatif (Kurva S Rencana)
     rencana_kumulatif = []
     cum_val = 0
-    for val in rencana_mingguan:
+    for val in rencana_bulanan:
         cum_val += val
         rencana_kumulatif.append(round(cum_val, 2))
         
@@ -2866,7 +2866,7 @@ def gantt_chart(proyek_id):
             for k in ['m1','m2','m3','m4','m5','m6']:
                 item[k] = ''
     
-    labels = [f"Minggu {i+1}" for i in range(minggu_total)]
+    labels = [f"M{i}" for i in range(1, bulan_total + 1)]
     
     # Proses realisasi disesuaikan dengan indeks minggu
     realisasi = []
@@ -2886,8 +2886,8 @@ def gantt_chart(proyek_id):
                             realisasi=realisasi,
                             rencana=rencana_kumulatif,
                             wbs_data=wbs_data,
-                            rencana_mingguan=rencana_mingguan,
-                            minggu_total=minggu_total)
+                            rencana_bulanan=rencana_bulanan,
+                            bulan_total=bulan_total)
 # ==========================================
 # 6. WBS MANAGEMENT
 # ==========================================
