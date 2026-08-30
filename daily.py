@@ -1641,9 +1641,6 @@ def edit_laporan(id, proyek_id):
     cursor.execute("SELECT nama_pekerjaan FROM master_wbs WHERE proyek_id = %s ORDER BY kode_wbs ASC", (proyek_id,))
     wbs_list = [r['nama_pekerjaan'] for r in cursor.fetchall()]
     
-    # Hitung M1/M2/M3 dari data laporan aktual
-    wbs_target_bulanan = _hitung_kumulatif_bulanan(cursor, proyek_id)
-    
     conn.close()
     
     if not laporan:
