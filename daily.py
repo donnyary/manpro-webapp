@@ -151,7 +151,7 @@ def get_db_connection():
     Lokal (tanpa DATABASE_URL, gunakan env vars terpisah atau default):
       DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
     """
-    database_url = os.environ.get('DATABASE_URL', '') or os.environ.get('MYSQL_URL', '')
+    database_url = os.environ.get('DATABASE_URL', '') or os.environ.get('MYSQL_URL', '') or os.environ.get('MYSQLURL', '')
     
     if database_url:
         # Parse DATABASE_URL (format: mysql://user:pass@host:port/dbname?params)
