@@ -1272,48 +1272,20 @@ def sync_pull():
     
     try:
         conn_local = get_db_connection()
-        cur_local = conn_local.cursor()
-        cur_cloud = conn_cloud.cursor()
-        
-        cur_local.execute('SET FOREIGN_KEY_CHECKS=0')
-        cur_local.execute('SET UNIQUE_CHECKS=0')
-        
         total = 0
         for table in SYNC_TABLES:
             try:
-                # Ambil struktur dari cloud
-                cur_cloud.execute(f'SHOW CREATE TABLE `{table}`')
-                create_sql = cur_cloud.fetchone()[1]
-                
-                # Buat/update tabel di lokal
-                cur_local.execute(f'DROP TABLE IF EXISTS `{table}`')
-                cur_local.execute(create_sql)
-                
-                # Ambil data dari cloud
-                cur_cloud.execute(f'SELECT * FROM `{table}`')
-                rows = cur_cloud.fetchall()
-                
-                if rows:
-                    cur_cloud.execute(f'SHOW COLUMNS FROM `{table}`')
-                    columns = [c[0] for c in cur_cloud.fetchall()]
-                    col_str = ', '.join([f'`{c}`' for c in columns])
-                    placeholders = ', '.join(['%s'] * len(columns))
-                    insert_sql = f'INSERT INTO `{table}` ({col_str}) VALUES ({placeholders})'
-                    cur_local.executemany(insert_sql, rows)
-                    total += len(rows)
+                n = _sync_table_pull(conn_local, conn_cloud, table)
+                total += n
+                if n > 0:
+                    print(f'[SYNC PULL] {table}: {n} rows')
             except Exception as e:
                 print(f'[SYNC PULL] {table}: {e}')
         
-        cur_local.execute('SET FOREIGN_KEY_CHECKS=1')
-        cur_local.execute('SET UNIQUE_CHECKS=1')
-        conn_local.commit()
-        
-        cur_local.close()
         conn_local.close()
-        cur_cloud.close()
         conn_cloud.close()
         
-        flash(f'Pull berhasil! {total} data diambil dari TiDB Cloud.', 'success')
+        flash(f'Pull berhasil! {total} data diambil dari TiDB Cloud (safe merge).', 'success')
     except Exception as e:
         flash(f'Gagal pull data: {str(e)}', 'danger')
     
