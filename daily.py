@@ -1498,6 +1498,8 @@ def pengaturan_proyek(proyek_id):
         pemilik_proyek = request.form.get('pemilik_proyek')
         lokasi = request.form.get('lokasi')
         no_kontrak = request.form.get('no_kontrak')
+        tanggal_mulai = request.form.get('tanggal_mulai') or None
+        tanggal_selesai = request.form.get('tanggal_selesai') or None
         
         file = request.files.get('logo_pemilik')
         if file and file.filename != '':
@@ -1505,14 +1507,16 @@ def pengaturan_proyek(proyek_id):
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename_owner))
             
             cursor.execute("""UPDATE master_proyek
-                              SET nama_proyek = %s, pemilik_proyek = %s, lokasi = %s, no_kontrak = %s, logo_pemilik = %s
+                              SET nama_proyek = %s, pemilik_proyek = %s, lokasi = %s, no_kontrak = %s, logo_pemilik = %s,
+                                  tanggal_mulai = %s, tanggal_selesai = %s
                               WHERE id = %s""",
-                           (nama_proyek, pemilik_proyek, lokasi, no_kontrak, filename_owner, proyek_id))
+                           (nama_proyek, pemilik_proyek, lokasi, no_kontrak, filename_owner, tanggal_mulai, tanggal_selesai, proyek_id))
         else:
             cursor.execute("""UPDATE master_proyek
-                              SET nama_proyek = %s, pemilik_proyek = %s, lokasi = %s, no_kontrak = %s
+                              SET nama_proyek = %s, pemilik_proyek = %s, lokasi = %s, no_kontrak = %s,
+                                  tanggal_mulai = %s, tanggal_selesai = %s
                               WHERE id = %s""",
-                           (nama_proyek, pemilik_proyek, lokasi, no_kontrak, proyek_id))
+                           (nama_proyek, pemilik_proyek, lokasi, no_kontrak, tanggal_mulai, tanggal_selesai, proyek_id))
             
         conn.commit()
         flash('Pengaturan Proyek Berhasil Diperbarui!', 'success')
