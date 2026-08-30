@@ -36,6 +36,14 @@
                     <input type="text" class="form-control rounded-3" name="no_kontrak" value="{{ proyek.no_kontrak }}">
                 </div>
                 <div class="col-md-6">
+                    <label class="form-label small fw-bold">Tanggal Mulai Pekerjaan</label>
+                    <input type="date" class="form-control rounded-3" name="tanggal_mulai" value="{{ proyek.tanggal_mulai or '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Tanggal Selesai Pekerjaan</label>
+                    <input type="date" class="form-control rounded-3" name="tanggal_selesai" value="{{ proyek.tanggal_selesai or '' }}">
+                </div>
+                <div class="col-md-6">
                     <label class="form-label small fw-bold">Logo Pemilik Proyek (Opsional)</label>
                     <input type="file" class="form-control rounded-3" name="logo_pemilik" accept="image/*">
                     {% if proyek.logo_pemilik %}
