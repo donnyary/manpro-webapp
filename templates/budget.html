@@ -172,15 +172,15 @@
                         <td>{{ b.nama_item }}</td>
                         <td class="text-end fw-bold text-danger">Rp {{ "{:,.0f}".format(b.realisasi_biaya or 0) }}</td>
                         <td class="text-center">
-                            {% if session.role in ['admin', 'manager'] %}
+                            {% if session.role == 'admin' or (session.role in ['manager', 'user'] and session.get('can_edit', True)) %}
                             <button class="btn btn-sm btn-outline-warning rounded-pill px-2 me-1" data-bs-toggle="modal" data-bs-target="#modalEditBudget{{ b.id }}" title="Edit">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>
+                            {% endif %}
+                            {% if session.role == 'admin' or (session.role in ['manager', 'user'] and session.get('can_delete', True)) %}
                             <a href="/delete_budget/{{ b.id }}/{{ proyek.id }}" class="btn btn-sm btn-outline-danger rounded-pill px-2" onclick="return confirm('Hapus transaksi ini?')" title="Hapus">
                                 <i class="fa-solid fa-trash"></i>
                             </a>
-                            {% else %}
-                            <span class="text-muted small">-</span>
                             {% endif %}
                         </td>
                     </tr>
