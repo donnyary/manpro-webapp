@@ -39,6 +39,67 @@
         </div>
     </div>
 
+    <!-- Auto-Sync Status -->
+    {% set sync = get_sync_state() %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-{% if sync.auto_sync_enabled %}success{% else %}secondary{% endif %}">
+                <div class="card-header bg-{% if sync.auto_sync_enabled %}success{% else %}secondary{% endif %} text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-robot"></i> Auto-Sync (Background)</h5>
+                    <div>
+                        <span class="badge bg-{% if sync.status == 'syncing' %}warning{% elif sync.status == 'error' %}danger{% elif sync.auto_sync_enabled %}light text-dark{% else %}dark{% endif %}">
+                            {% if sync.status == 'syncing' %}<i class="fas fa-spinner fa-spin"></i> Syncing...
+                            {% elif sync.status == 'error' %}<i class="fas fa-exclamation-triangle"></i> Error
+                            {% elif sync.auto_sync_enabled %}AKTIF{% else %}NONAKTIF{% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <strong>Status:</strong>
+                            {% if sync.auto_sync_enabled %}
+                                <span class="text-success fw-bold">AKTIF</span>
+                            {% else %}
+                                <span class="text-secondary fw-bold">NONAKTIF</span>
+                            {% endif %}
+                            <br><small class="text-muted">Interval: {{ (sync.interval_seconds / 60)|int }} menit</small>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Terakhir Sync:</strong><br>
+                            <small>{{ sync.last_sync or 'Belum pernah' }}</small>
+                            {% if sync.last_rows_synced > 0 %}
+                                <br><small class="text-success">{{ sync.last_rows_synced }} rows ({{ sync.last_direction }})</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Total Sync:</strong> {{ sync.sync_count }}x
+                            {% if sync.last_error %}
+                                <br><small class="text-danger">{{ sync.last_error[:80] }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <form method="POST" action="{{ url_for('toggle_auto_sync') }}" class="d-inline">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-{% if sync.auto_sync_enabled %}outline-danger{% else %}success{% endif %} rounded-pill px-3">
+                                    <i class="fas fa-{% if sync.auto_sync_enabled %}stop{% else %}play{% endif %}"></i>
+                                    {% if sync.auto_sync_enabled %}Matikan{% else %}Aktifkan{% endif %}
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('trigger_auto_sync') }}" class="d-inline ms-1">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="direction" value="merge">
+                                <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3" {% if sync.status == 'syncing' %}disabled{% endif %}>
+                                    <i class="fas fa-sync"></i> Sync Sekarang
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tombol Sync -->
     <div class="row mb-4">
         <div class="col-md-4">
