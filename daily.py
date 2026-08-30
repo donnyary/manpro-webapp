@@ -1652,13 +1652,9 @@ def update_laporan():
                     (laporan_id, nama_material[i], request.form.getlist('volume_material[]')[i], request.form.getlist('satuan_material[]')[i], request.form.getlist('ket_material[]')[i]))
         
         jenis_pekerjaan = request.form.getlist('jenis_pekerjaan[]')
-        jenis_pekerjaan_custom = request.form.getlist('jenis_pekerjaan_custom[]')
         for i in range(len(jenis_pekerjaan)):
-            jp = jenis_pekerjaan[i]
-            if jp == '__LAINNYA__' and i < len(jenis_pekerjaan_custom) and jenis_pekerjaan_custom[i]:
-                jp = jenis_pekerjaan_custom[i]
             cursor.execute("INSERT INTO pekerjaan (laporan_id, jenis_pekerjaan, lokasi, vol_harian, proses_kumulatif, target_harian, keterangan) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                (laporan_id, jp, request.form.getlist('lokasi_pekerjaan[]')[i], request.form.getlist('vol_harian[]')[i], request.form.getlist('proses_kumulatif[]')[i], request.form.getlist('target_harian[]')[i], request.form.getlist('ket_pekerjaan[]')[i]))
+                (laporan_id, jenis_pekerjaan[i], request.form.getlist('lokasi_pekerjaan[]')[i], request.form.getlist('vol_harian[]')[i], request.form.getlist('proses_kumulatif[]')[i], request.form.getlist('target_harian[]')[i], request.form.getlist('ket_pekerjaan[]')[i]))
         
         cursor.execute("UPDATE kondisi_lapangan SET akses = %s, k3 = %s, kondisi_fisik = %s, hambatan = %s, tak_terencana = %s WHERE laporan_id = %s",
             (request.form['akses_lapangan'], request.form['keselamatan'], request.form['kondisi_lapangan'], request.form['faktor_penghambat'], request.form['kegiatan_tak_terencana'], laporan_id))
