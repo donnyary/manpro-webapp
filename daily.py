@@ -143,65 +143,49 @@ def role_required(*roles):
     return decorator
 
 def get_db_connection():
-    """Koneksi database - support MySQL lokal maupun cloud (TiDB, PlanetScale, dll).
+    """Koneksi database - support MySQL lokal maupun cloud (Railway, TiDB, dll)."""
+    import urllib.parse
     
-    Cloud Database (set env var DATABASE_URL):
-      DATABASE_URL=mysql://user:pass@host:port/dbname?charset=utf8mb4
+    # Cek semua kemungkinan env var untuk database URL
+    database_url = (
+        os.environ.get('DATABASE_URL', '') or 
+        os.environ.get('MYSQL_URL', '') or 
+        os.environ.get('MYSQLURL', '')
+    )
     
-    Lokal (tanpa DATABASE_URL, gunakan env vars terpisah atau default):
-      DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
-    """
-    database_url = os.environ.get('DATABASE_URL', '') or os.environ.get('MYSQL_URL', '') or os.environ.get('MYSQLURL', '')
-    
-    # Railway MySQL: cek variable terpisah juga
-    db_host = os.environ.get('MYSQLHOST', '') or os.environ.get('DB_HOST', '')
+    # Default values
+    db_host = os.environ.get('MYSQLHOST', '') or os.environ.get('DB_HOST', '127.0.0.1')
     db_port = int(os.environ.get('MYSQLPORT', '') or os.environ.get('DB_PORT', '3306') or '3306')
-    db_user = os.environ.get('MYSQLUSER', '') or os.environ.get('DB_USER', '') or os.environ.get('MYSQLUSER', '')
+    db_user = os.environ.get('MYSQLUSER', '') or os.environ.get('DB_USER', 'root')
     db_password = os.environ.get('MYSQLPASSWORD', '') or os.environ.get('DB_PASSWORD', '')
-    db_name = os.environ.get('MYSQLDATABASE', '') or os.environ.get('DB_NAME', '') or 'db_proyek'
+    db_name = os.environ.get('MYSQLDATABASE', '') or os.environ.get('DB_NAME', 'railway')
     
     if database_url:
-        # Parse DATABASE_URL (format: mysql://user:pass@host:port/dbname?params)
-        # Support format postgres:// yang kadang dipakai cloud provider
-        if database_url.startswith('postgres://'):
-            database_url = database_url.replace('postgres://', 'mysql://', 1)
-        if database_url.startswith('mysql://'):
-            database_url = database_url[len('mysql://'):]
-        
-        # Parse user:pass@host:port/dbname?params
-        if '@' in database_url:
-            user_pass, host_rest = database_url.split('@', 1)
-            if ':' in user_pass:
-                db_user, db_password = user_pass.split(':', 1)
-            else:
-                db_user, db_password = user_pass, ''
+        try:
+            # Handle postgres:// format
+            if database_url.startswith('postgres://'):
+                database_url = database_url.replace('postgres://', 'mysql://', 1)
             
-            # Hapus query params (?sslmode=... dst)
-            if '?' in host_rest:
-                host_rest = host_rest.split('?', 1)[0]
-            
-            # Parse host:port/dbname
-            if '/' in host_rest:
-                host_port, db_name = host_rest.split('/', 1)
-            else:
-                host_port = host_rest
-                db_name = 'db_proyek'
-            
-            # Parse host:port
-            if ':' in host_port:
-                db_host, db_port = host_port.rsplit(':', 1)
-                db_port = int(db_port)
-            else:
-                db_host = host_port
-                db_port = 3306
+            # Parse URL menggunakan urllib
+            if database_url.startswith('mysql://'):
+                parsed = urllib.parse.urlparse(database_url)
+                db_host = parsed.hostname or '127.0.0.1'
+                db_port = parsed.port or 3306
+                db_user = parsed.username or 'root'
+                db_password = parsed.password or ''
+                db_name = (parsed.path or '/railway').lstrip('/') or 'railway'
+                
+                # Handle URL-encoded password
+                if db_password:
+                    db_password = urllib.parse.unquote(db_password)
+                    
+                print(f'[DB] Parsed URL: host={db_host}, port={db_port}, user={db_user}, db={db_name}')
+        except Exception as e:
+            print(f'[DB] Error parsing URL: {e}')
+    else:
+        print(f'[DB] Using env vars: host={db_host}, port={db_port}, user={db_user}, db={db_name}')
     
-    # Jika tidak ada URL dan tidak ada host dari Railway, gunakan default lokal
-    if not database_url and not db_host:
-        db_host = '127.0.0.1'
-        db_port = 3306
-        db_user = 'root'
-        db_password = ''
-        db_name = 'db_proyek'
+    print(f'[DB] Connecting to: {db_host}:{db_port}/{db_name} as {db_user}')
     
     return mysql.connector.connect(
         host=db_host,
@@ -414,6 +398,45 @@ CREATE TABLE IF NOT EXISTS `active_sessions` (
 """
 
     try:
+        # Pertama, koneksi tanpa database untuk buat database jika belum ada
+        import urllib.parse
+        db_host = os.environ.get('MYSQLHOST', '') or os.environ.get('DB_HOST', '127.0.0.1')
+        db_port = int(os.environ.get('MYSQLPORT', '') or os.environ.get('DB_PORT', '3306') or '3306')
+        db_user = os.environ.get('MYSQLUSER', '') or os.environ.get('DB_USER', 'root')
+        db_password = os.environ.get('MYSQLPASSWORD', '') or os.environ.get('DB_PASSWORD', '')
+        db_name = os.environ.get('MYSQLDATABASE', '') or os.environ.get('DB_NAME', 'railway')
+        
+        # Parse dari DATABASE_URL jika ada
+        database_url = os.environ.get('DATABASE_URL', '') or os.environ.get('MYSQL_URL', '') or os.environ.get('MYSQLURL', '')
+        if database_url:
+            if database_url.startswith('postgres://'):
+                database_url = database_url.replace('postgres://', 'mysql://', 1)
+            if database_url.startswith('mysql://'):
+                parsed = urllib.parse.urlparse(database_url)
+                db_host = parsed.hostname or db_host
+                db_port = parsed.port or db_port
+                db_user = parsed.username or db_user
+                db_password = parsed.password or db_password
+                db_name = (parsed.path or '').lstrip('/') or db_name
+                if db_password:
+                    db_password = urllib.parse.unquote(db_password)
+        
+        print(f'[MIGRATE] Connecting to: {db_host}:{db_port}/{db_name} as {db_user}')
+        
+        # Koneksi tanpa database dulu
+        conn_no_db = mysql.connector.connect(
+            host=db_host, port=db_port, user=db_user, password=db_password
+        )
+        cursor_no_db = conn_no_db.cursor()
+        
+        # Buat database jika belum ada
+        cursor_no_db.execute(f'CREATE DATABASE IF NOT EXISTS `{db_name}`')
+        conn_no_db.commit()
+        print(f'[MIGRATE] Database `{db_name}` siap!')
+        cursor_no_db.close()
+        conn_no_db.close()
+        
+        # Sekarang koneksi ke database yang benar
         conn = get_db_connection()
         cursor = conn.cursor()
 
