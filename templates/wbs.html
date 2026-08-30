@@ -35,8 +35,8 @@
                         <th style="width: 100px;">Kode WBS</th>
                         <th>Nama Pekerjaan</th>
                         <th style="width: 100px;">Bobot (%)</th>
-                        <th style="width: 100px;" class="text-center">Minggu Mulai</th>
-                        <th style="width: 100px;" class="text-center">Durasi (Minggu)</th>
+                        <th style="width: 100px;" class="text-center">Bulan Mulai</th>
+                        <th style="width: 100px;" class="text-center">Bulan Selesai</th>
                         <th style="width: 140px;" class="text-center">Aksi</th>
                     </tr>
                 </thead>
@@ -46,8 +46,8 @@
                         <td class="fw-semibold text-primary">{{ w.kode_wbs }}</td>
                         <td>{{ w.nama_pekerjaan }}</td>
                         <td>{{ w.bobot_persen }}%</td>
-                        <td class="text-center">{{ w.get('minggu_mulai', 1) }}</td>
-                        <td class="text-center">{{ w.get('durasi_minggu', 4) }} mgg</td>
+                        <td class="text-center">M{{ w.get('bulan_mulai', 1) }}</td>
+                        <td class="text-center">M{{ w.get('bulan_selesai', 1) }}</td>
                         <td class="text-center">
                             {% if session.get('can_edit', True) %}
                             <button class="btn btn-sm btn-outline-warning rounded-pill px-2 me-1" data-bs-toggle="modal" data-bs-target="#modalEditWbs{{ w.id }}" title="Edit">
